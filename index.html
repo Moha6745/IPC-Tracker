@@ -1,3 +1,17 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#16241C">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2316241C'/%3E%3Cpath d='M8 20l5-5 4 4 7-8' stroke='%234ade80' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{color-scheme:light}
+*{-webkit-text-size-adjust:100%}
+body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
 <title>تتبّع مراحل المستخلصات</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -185,6 +199,8 @@ tr.detail > td{background:var(--surface-2);padding:0}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
 </style>
+</head>
+<body>
 
 <div class="app" dir="rtl">
   <header class="top">
@@ -328,6 +344,8 @@ tr.detail > td{background:var(--surface-2);padding:0}
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -423,24 +441,52 @@ function dbErr(e){
   localSaveAll();
 }
 function setMode(m){ store.mode=m; }
+/* إعدادات Firebase — تُملأ من وحدة تحكم Firebase (مفاتيح عامة، ليست أسراراً) */
+var FIREBASE_CONFIG={
+  apiKey:"",
+  authDomain:"",
+  projectId:"",
+  storageBucket:"",
+  messagingSenderId:"",
+  appId:""
+};
+function goLocal(){ setMode("local"); localLoad(); renderAll(); }
+/* يعمل مع تخزين Claude ومع Firestore — الواجهتان متطابقتان */
+function attachDb(db){
+  store.db=db; setMode("cloud");
+  db.doc("app/config").onSnapshot(function(snap){
+    if(snap.exists){ var d=snap.data();
+      if(d&&Array.isArray(d.projects)&&Array.isArray(d.people)){ store.config=d; }
+    } else { db.doc("app/config").set(store.config)["catch"](function(){}); }
+    store.loaded=true; renderAll();
+  },function(){ goLocal(); });
+  db.collection("ipcs").onSnapshot(function(snap){
+    store.ipcs=snap.docs.map(function(d){var v=d.data()||{};v.id=d.id;return v;});
+    store.loaded=true; renderAll();
+  },function(){ });
+}
 function initStore(){
   var hasClaude = typeof window!=="undefined" && window.claude && typeof window.claude.use==="function";
-  if(!hasClaude){ setMode("local"); localLoad(); renderAll(); return; }
-  setMode("pending"); renderAll();
-  window.claude.use("db").then(function(db){
-    if(!db){ setMode("local"); localLoad(); renderAll(); return; }
-    store.db=db; setMode("cloud");
-    db.doc("app/config").onSnapshot(function(snap){
-      if(snap.exists){ var d=snap.data();
-        if(d&&Array.isArray(d.projects)&&Array.isArray(d.people)){ store.config=d; }
-      } else { db.doc("app/config").set(store.config)["catch"](function(){}); }
-      store.loaded=true; renderAll();
-    },function(){ setMode("local"); localLoad(); renderAll(); });
-    db.collection("ipcs").onSnapshot(function(snap){
-      store.ipcs=snap.docs.map(function(d){var v=d.data()||{};v.id=d.id;return v;});
-      store.loaded=true; renderAll();
-    },function(){ });
-  })["catch"](function(){ setMode("local"); localLoad(); renderAll(); });
+  if(hasClaude){
+    setMode("pending"); renderAll();
+    window.claude.use("db").then(function(db){
+      if(!db){ goLocal(); return; }
+      attachDb(db);
+    })["catch"](goLocal);
+    return;
+  }
+  var hasFirebase = typeof firebase!=="undefined" && FIREBASE_CONFIG && FIREBASE_CONFIG.projectId;
+  if(hasFirebase){
+    setMode("pending"); renderAll();
+    try{
+      if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      var fdb=firebase.firestore();
+      try{ fdb.settings({ignoreUndefinedProperties:true}); }catch(e){}
+      attachDb(fdb);
+    }catch(e){ goLocal(); }
+    return;
+  }
+  goLocal();
 }
 
 /* ------------------------------ بيانات العرض التجريبية ------------------------------ */
@@ -1006,3 +1052,5 @@ renderAll();
 initStore();
 })();
 </script>
+</body>
+</html>
