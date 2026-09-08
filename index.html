@@ -1,0 +1,1008 @@
+<title>تتبّع مراحل المستخلصات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#FFFFFF;
+  --surface:#FFFFFF;
+  --surface-2:#F4F8F5;
+  --line:#DCE5DF;
+  --line-soft:#EAF0EC;
+  --ink:#16241C;
+  --ink-2:#4B5A51;
+  --ink-3:#84918A;
+  --accent:#006C35;
+  --accent-2:#00522A;
+  --accent-soft:#E7F2EB;
+  --accent-ink:#FFFFFF;
+  --danger:#D4415C;
+  --danger-soft:#FBE7EB;
+  --field:#FFFFFF;
+  --shadow:0 1px 2px rgba(0,60,30,.05), 0 8px 24px -18px rgba(0,60,30,.35);
+
+  --s1-fg:#3E5F8A; --s1-bg:#E7EEF7;
+  --s2-fg:#8A6410; --s2-bg:#F8EFD9;
+  --s3-fg:#A8402F; --s3-bg:#FAE3DE;
+  --s4-fg:#1B6C78; --s4-bg:#DDEEF1;
+  --s5-fg:#2A6B4A; --s5-bg:#DEEDE4;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);
+  font-family:"IBM Plex Sans Arabic","Segoe UI",system-ui,sans-serif;font-size:14px;line-height:1.6}
+.app{max-width:1240px;margin:0 auto;padding:18px 20px 60px}
+h1,h2,h3,.ttl{font-family:"Cairo","IBM Plex Sans Arabic",system-ui,sans-serif;text-wrap:balance;margin:0}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+
+/* header */
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.top h1{font-size:21px;font-weight:700;color:var(--accent);letter-spacing:-.2px}
+.top h1 .en{color:var(--ink-3);font-weight:600;font-size:15px}
+.top .sub{color:var(--ink-3);font-size:12.5px;margin-top:2px}
+.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px}
+.tabs button{font:inherit;font-weight:600;font-size:13px;color:var(--ink-2);background:none;border:0;border-radius:7px;
+  padding:7px 14px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.tabs button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,
+.saved-item:focus-visible,tr.row:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
+
+/* layout: sidebar on the right (first in RTL flow) */
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:960px){.layout{grid-template-columns:1fr}}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+  padding:16px 18px;margin-bottom:16px}
+.card > .head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.card .ttl{font-size:14.5px;font-weight:700;color:var(--accent)}
+.card .ttl .en{color:var(--ink-3);font-weight:600;font-size:12.5px}
+.hint{color:var(--ink-3);font-size:12px}
+
+/* fields */
+.grid{display:grid;gap:12px 14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:700px){.g2,.g3{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field > label{font-size:12px;font-weight:600;color:var(--ink-2)}
+input,select,textarea{font:inherit;font-size:13.5px;color:var(--ink);background:var(--field);
+  border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%}
+input::placeholder,textarea::placeholder{color:var(--ink-3)}
+input[readonly]{background:var(--surface-2);color:var(--ink-2)}
+select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:left 14px center,left 9px center;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-left:30px}
+textarea{resize:vertical;min-height:38px}
+.row{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:flex-end}
+.row .field{flex:1 1 150px}
+.row .field.narrow{flex:0 0 92px}
+.row .field.narrow input{padding-inline:8px;text-align:center}
+.row .field.date{flex:0 0 165px}
+.row textarea{height:38px;min-height:38px}
+
+.btn{font:inherit;font-weight:600;font-size:13px;border-radius:8px;padding:9px 18px;border:1px solid transparent;cursor:pointer;
+  background:var(--surface);color:var(--ink-2);border-color:var(--line)}
+.btn:hover{border-color:var(--accent-2);color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{background:var(--accent-2);border-color:var(--accent-2);color:var(--accent-ink)}
+.btn.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn.danger:hover{filter:brightness(1.06);color:#fff}
+.btn.small{padding:6px 12px;font-size:12px}
+.btn.block{width:100%}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.actions .spacer{margin-inline-start:auto}
+.iconbtn{border:0;background:var(--danger-soft);color:var(--danger);width:24px;height:24px;border-radius:6px;
+  font:inherit;font-size:13px;line-height:1;cursor:pointer}
+
+/* sidebar */
+.side .card{padding:14px 15px}
+.saved-list{display:flex;flex-direction:column;gap:8px;max-height:330px;overflow:auto;padding-inline-end:2px}
+.saved-item{text-align:start;font:inherit;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:9px;
+  padding:9px 11px;cursor:pointer;display:block;width:100%}
+.saved-item:hover{border-color:var(--accent-2)}
+.saved-item[aria-current="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.saved-item .t{font-weight:600;font-size:12.8px;color:var(--ink)}
+.saved-item .m{font-size:11.5px;color:var(--ink-3);margin-top:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.empty{color:var(--ink-3);font-size:12.5px;padding:10px 2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line-soft);
+  border-radius:20px;padding:4px 6px 4px 10px;font-size:12px;color:var(--ink-2)}
+.chip button{border:0;background:none;color:var(--ink-3);cursor:pointer;font:inherit;font-size:13px;line-height:1;padding:0}
+.chip button:hover{color:var(--danger)}
+details.manage{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+details.manage summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--ink-2);list-style:none}
+details.manage summary::-webkit-details-marker{display:none}
+details.manage summary::before{content:"▾ ";color:var(--ink-3)}
+.mini-list{display:flex;flex-direction:column;gap:4px;margin-top:8px;max-height:200px;overflow:auto}
+.mini-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2);
+  border:1px solid var(--line-soft);border-radius:7px;padding:5px 8px}
+.mini-row span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* status pills + pipeline */
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill.s1{background:var(--s1-bg);color:var(--s1-fg)}
+.pill.s2{background:var(--s2-bg);color:var(--s2-fg)}
+.pill.s3{background:var(--s3-bg);color:var(--s3-fg)}
+.pill.s4{background:var(--s4-bg);color:var(--s4-fg)}
+.pill.s5{background:var(--s5-bg);color:var(--s5-fg)}
+.track{display:inline-flex;gap:3px;align-items:center}
+.track i{display:block;width:16px;height:4px;border-radius:2px;background:var(--line)}
+.track i.on{background:var(--accent)}
+.track i.warn{background:var(--s3-fg)}
+.rtn{font-size:11px;color:var(--s3-fg);font-weight:600}
+
+/* banner */
+.banner{display:flex;align-items:center;gap:10px;background:var(--accent-soft);border:1px solid var(--line);
+  border-radius:10px;padding:9px 13px;margin-bottom:14px;font-size:12.5px;color:var(--ink-2)}
+.banner b{color:var(--accent)}
+.toast{position:fixed;inset-block-end:22px;inset-inline-start:22px;background:var(--accent);color:var(--accent-ink);
+  padding:10px 18px;border-radius:9px;font-weight:600;font-size:13px;box-shadow:var(--shadow);z-index:20;
+  opacity:0;transform:translateY(8px);transition:opacity .18s,transform .18s;pointer-events:none}
+.toast.show{opacity:1;transform:none}
+
+/* tables */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:720px}
+th,td{text-align:start;padding:10px 12px;border-bottom:1px solid var(--line-soft);font-size:13px;vertical-align:middle}
+th{background:var(--surface-2);color:var(--ink-2);font-size:11.5px;font-weight:700;letter-spacing:.02em;
+  text-transform:uppercase;position:sticky;top:0;z-index:1}
+tbody tr:last-child td{border-bottom:0}
+tr.row{cursor:pointer}
+tr.row:hover td{background:var(--surface-2)}
+tr.row[aria-expanded="true"] td{background:var(--accent-soft)}
+td .proj{font-weight:600}
+td .co{color:var(--ink-3);font-size:11.5px}
+tr.detail > td{background:var(--surface-2);padding:0}
+.timeline{padding:14px 16px}
+.tl{list-style:none;margin:0;padding:0;position:relative}
+.tl::before{content:"";position:absolute;inset-block:8px;inset-inline-start:6px;width:2px;background:var(--line)}
+.tl li{position:relative;padding-inline-start:24px;padding-block:7px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tl li::before{content:"";position:absolute;inset-inline-start:1px;top:14px;width:12px;height:12px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--line)}
+.tl li.last::before{border-color:var(--accent);background:var(--accent)}
+.tl .who{color:var(--ink-2);font-size:12.5px}
+.tl .gap{color:var(--ink-3);font-size:11.5px}
+.tl .note{color:var(--ink-3);font-size:12px;flex-basis:100%;padding-inline-start:2px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media (max-width:820px){.stats{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 13px;text-align:start;
+  font:inherit;cursor:pointer}
+.stat:hover{border-color:var(--accent-2)}
+.stat[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.stat .v{font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:500;color:var(--ink);display:block}
+.stat .k{font-size:11.5px;color:var(--ink-3)}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
+.filters .field{min-width:150px}
+.filters .field.wide{flex:1;min-width:200px}
+
+@media print{
+  .side,.tabs,.filters,.actions,.banner,.iconbtn{display:none !important}
+  .app{max-width:none;padding:0}
+  .card{box-shadow:none;break-inside:avoid}
+  body{background:#fff}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
+</style>
+
+<div class="app" dir="rtl">
+  <header class="top">
+    <div>
+      <h1>نظام تتبّع مراحل المستخلصات <span class="en">(IPC Tracking)</span></h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tabEntry" aria-selected="true">تسجيل حالة</button>
+        <button role="tab" id="tabSummary" aria-selected="false">ملخص المستخلصات</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="demoBanner" class="banner" hidden>
+    <b>بيانات تجريبية</b><span>هذه أمثلة للعرض فقط — تختفي تلقائياً بمجرد حفظ أول مستخلص لك.</span>
+  </div>
+
+  <div class="layout">
+    <!-- ============ العمود الأيمن ============ -->
+    <aside class="side">
+      <section class="card">
+        <div class="head">
+          <h2 class="ttl">المستخلصات المحفوظة <span class="en">(Saved IPCs)</span></h2>
+          <span class="hint num" id="savedCount">0</span>
+        </div>
+        <div class="saved-list" id="savedList"></div>
+        <button class="btn primary block small" id="btnNew" style="margin-top:10px">+ مستخلص جديد</button>
+      </section>
+
+      <section class="card">
+        <h2 class="ttl" style="margin-bottom:12px">إضافة مشروع / شركة <span class="en">(Project)</span></h2>
+        <div class="grid">
+          <div class="field"><label for="npProject">اسم المشروع</label><input id="npProject"></div>
+          <div class="field"><label for="npCompany">اسم الشركة</label><input id="npCompany"></div>
+          <div class="field"><label for="npType">نوع المشروع</label>
+            <select id="npType"><option value="مقاول">مقاول (Contractor)</option><option value="استشاري">استشاري (Consultant)</option></select>
+          </div>
+          <button class="btn primary block small" id="btnAddProject">إضافة</button>
+        </div>
+        <details class="manage">
+          <summary>المشاريع المسجّلة <span class="num" id="projCount">0</span></summary>
+          <div class="mini-list" id="projList"></div>
+        </details>
+      </section>
+
+      <section class="card">
+        <h2 class="ttl" style="margin-bottom:12px">إضافة شخص مسؤول <span class="en">(Assignee)</span></h2>
+        <div class="grid">
+          <div class="field"><label for="npPerson">اسم الشخص</label><input id="npPerson"></div>
+          <button class="btn primary block small" id="btnAddPerson">إضافة</button>
+        </div>
+        <div class="chips" id="peopleChips"></div>
+      </section>
+    </aside>
+
+    <!-- ============ المحتوى ============ -->
+    <main>
+      <!-- صفحة 1 -->
+      <div id="pageEntry">
+        <section class="card">
+          <div class="head">
+            <h2 class="ttl">بيانات المستخلص <span class="en">(IPC Details)</span></h2>
+            <span class="hint" id="ipcState">مستخلص جديد</span>
+          </div>
+          <div class="grid g3">
+            <div class="field"><label for="fProject">المشروع</label><select id="fProject"></select></div>
+            <div class="field"><label for="fCompany">الشركة</label><input id="fCompany" readonly></div>
+            <div class="field"><label for="fIpc">رقم المستخلص (IPC No)</label><input id="fIpc" inputmode="numeric"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <h2 class="ttl">تحديث الحالة <span class="en">(Status Update)</span></h2>
+          </div>
+          <div class="row">
+            <div class="field"><label for="fStatus">المرحلة</label><select id="fStatus"></select></div>
+            <div class="field narrow" id="roundField" hidden><label for="fRound">رقم الترجيع</label><input id="fRound" type="number" min="1" step="1" class="num"></div>
+            <div class="field date"><label for="fDate">تاريخ العملية</label><input id="fDate" type="date"></div>
+            <div class="field"><label for="fPerson">الشخص المسؤول</label><select id="fPerson"></select></div>
+          </div>
+          <div class="grid" style="margin-top:12px">
+            <div class="field"><label for="fNote">ملاحظة (اختياري)</label><textarea id="fNote" rows="1"></textarea></div>
+          </div>
+          <div class="actions" style="margin-top:14px">
+            <button class="btn primary" id="btnSave">حفظ الحالة</button>
+            <button class="btn small" id="btnClear">تفريغ الحقول</button>
+            <span class="spacer"></span>
+            <button class="btn small" id="btnExcelIpc" hidden>تصدير Excel</button>
+            <button class="btn small" id="btnPdfIpc" hidden>تصدير PDF</button>
+            <button class="btn small danger" id="btnDeleteIpc" hidden>حذف المستخلص</button>
+          </div>
+        </section>
+
+        <section class="card" id="historyCard" hidden>
+          <div class="head">
+            <h2 class="ttl">سجل المراحل <span class="en">(Stage History)</span></h2>
+            <span class="hint" id="historyMeta"></span>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>#</th><th>المرحلة</th><th>التاريخ</th><th>المسؤول</th><th>الملاحظة</th><th></th></tr></thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- صفحة 2 -->
+      <div id="pageSummary" hidden>
+        <div class="stats" id="stats"></div>
+        <section class="card">
+          <div class="head">
+            <h2 class="ttl">ملخص حالة المستخلصات <span class="en">(Status Summary)</span></h2>
+          </div>
+          <div class="filters">
+            <div class="field wide"><label for="qSearch">بحث</label><input id="qSearch"></div>
+            <div class="field"><label for="qProject">المشروع</label><select id="qProject"></select></div>
+            <div class="field"><label for="qPerson">المسؤول</label><select id="qPerson"></select></div>
+            <div class="field"><label for="qStatus">المرحلة</label><select id="qStatus"></select></div>
+          </div>
+          <div class="actions" style="margin-bottom:14px">
+            <button class="btn small" id="btnExcel">تصدير Excel</button>
+            <button class="btn small" id="btnPdf">تصدير PDF</button>
+            <button class="btn small" id="btnPrint">طباعة</button>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr>
+                <th>المشروع</th><th>الشركة</th><th>المستخلص</th><th>المسار</th>
+                <th>الحالة الحالية</th><th>التاريخ</th><th>المسؤول</th><th>منذ</th>
+              </tr></thead>
+              <tbody id="summaryBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+"use strict";
+document.documentElement.setAttribute("lang","ar");
+document.documentElement.setAttribute("dir","rtl");
+
+/* ------------------------------ الثوابت ------------------------------ */
+var STATUSES=[
+  {key:"receive", label:"الاستلام",                 short:"استلام",    step:1, cls:"s1"},
+  {key:"review",  label:"المراجعة",                 short:"مراجعة",    step:2, cls:"s2"},
+  {key:"returned",label:"رجعت للاستشاري للتعديل",   short:"رجعت",      step:2, cls:"s3"},
+  {key:"mawared", label:"تسجيل بموارد",             short:"موارد",     step:3, cls:"s4"},
+  {key:"etimad",  label:"تسجيل باعتماد",            short:"اعتماد",    step:4, cls:"s5"}
+];
+var NEXT_STATUS={receive:"review",review:"mawared",returned:"review",mawared:"etimad",etimad:"etimad"};
+function sortedPeople(){return store.config.people.slice().sort(function(a,b){
+  return String(a).localeCompare(String(b),"ar",{sensitivity:"base"});});}
+function sortedProjects(){return store.config.projects.slice().sort(function(a,b){
+  return String(a.name).localeCompare(String(b.name),"ar",{sensitivity:"base",numeric:true});});}
+function st(k){for(var i=0;i<STATUSES.length;i++){if(STATUSES[i].key===k)return STATUSES[i];}return STATUSES[0];}
+
+var SEED_PROJECTS=[
+ ["Advanced Co","Advanced Co"],["SAPAC-TRQR","SAPAC"],["Parsons","Parsons"],["SAPAC - SSRR","SAPAC"],
+ ["Yuksel","Yuksel"],["PMCM1 WSP","WSP"],["RTCC IC JV","RTCC IC JV"],["AAIC CHEC JV","AAIC CHEC JV"],
+ ["PMCM2 WSP","WSP"],["Almabani-KAFD","Almabani"],["PMCM4 IDS","IDS"],["KSxABSR Shade","KSxABSR Shade"],
+ ["Almabani-Thumama","Almabani"],["PMCM3 IDS","IDS"],["Almabani-IASR","Almabani"],["Almabani-PTAA1","Almabani"],
+ ["Ayuni IMR","Ayuni"],["PMCM7 IDOM","IDOM"],["PMCM6 DAR","DAR"],["Bin laden-Dirab","Bin laden-Dirab"],
+ ["RTCC-TR","RTCC-TR"],["SAJCO-CI G2","SAJCO-CI G2"],["Freyssinet - OBA","Freyssinet - OBA"],
+ ["PMCM5 - Dar Alriyadh","Dar Alriyadh"],["SAPAC -Jeddah R","SAPAC"],["Yuksel - TMER","Yuksel"]
+].map(function(p){return {name:p[0],company:p[1],type:"مقاول"};});
+var SEED_PEOPLE=["Adwaa","Faisal","Mohammed","Othman"];
+
+/* ------------------------------ أدوات ------------------------------ */
+function $(id){return document.getElementById(id);}
+function el(tag,cls,txt){var n=document.createElement(tag);if(cls)n.className=cls;if(txt!=null)n.textContent=txt;return n;}
+function uid(){return Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7);}
+function todayISO(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function fmtDate(iso){if(!iso)return"—";var p=String(iso).split("-");return p.length<3?iso:p[2]+"/"+p[1]+"/"+p[0];}
+function daysBetween(a,b){var x=new Date(a+"T00:00:00"),y=new Date(b+"T00:00:00");return Math.round((y-x)/86400000);}
+function sinceText(iso){var d=daysBetween(iso,todayISO());
+  if(isNaN(d))return"—"; if(d<=0)return"اليوم"; if(d===1)return"أمس"; return d+" يوم";}
+function toast(msg){var t=$("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove("show");},2200);}
+function sortedEvents(rec){return (rec.events||[]).slice().sort(function(a,b){
+  if(a.date!==b.date)return a.date<b.date?-1:1; return (a.ts||0)-(b.ts||0);});}
+function lastEvent(rec){var e=sortedEvents(rec);return e.length?e[e.length-1]:null;}
+
+/* ------------------------------ التخزين ------------------------------ */
+var LS_CFG="ipctracker.config.v1", LS_IPC="ipctracker.ipcs.v1";
+var store={
+  mode:"pending", db:null,
+  config:{projects:SEED_PROJECTS.slice(),people:SEED_PEOPLE.slice()},
+  ipcs:[],
+  loaded:false
+};
+function localLoad(){
+  try{var c=JSON.parse(localStorage.getItem(LS_CFG)||"null");
+      if(c&&c.projects&&c.people)store.config=c;}catch(e){}
+  try{var r=JSON.parse(localStorage.getItem(LS_IPC)||"null");if(Array.isArray(r))store.ipcs=r;}catch(e){}
+  store.loaded=true;
+}
+function localSaveAll(){
+  try{localStorage.setItem(LS_CFG,JSON.stringify(store.config));
+      localStorage.setItem(LS_IPC,JSON.stringify(store.ipcs));}catch(e){}
+}
+function saveConfig(){
+  if(store.mode==="cloud"&&store.db){store.db.doc("app/config").set(store.config)["catch"](dbErr);}
+  else localSaveAll();
+  renderAll();
+}
+function saveRecord(rec){
+  rec.updatedAt=new Date().toISOString();
+  var i=store.ipcs.findIndex(function(r){return r.id===rec.id;});
+  if(i<0)store.ipcs.push(rec); else store.ipcs[i]=rec;
+  if(store.mode==="cloud"&&store.db){store.db.doc("ipcs/"+rec.id).set(rec)["catch"](dbErr);}
+  else localSaveAll();
+  renderAll();
+}
+function deleteRecord(id){
+  store.ipcs=store.ipcs.filter(function(r){return r.id!==id;});
+  if(store.mode==="cloud"&&store.db){store.db.doc("ipcs/"+id)["delete"]()["catch"](dbErr);}
+  else localSaveAll();
+  renderAll();
+}
+function dbErr(e){
+  var code=(e&&e.code)||"";
+  if(code==="quota_exceeded")toast("امتلأت مساحة التخزين — احذف مستخلصات قديمة.");
+  else if(code==="revoked"||code==="not_granted")toast("تعذّر الحفظ المشترك — تم الحفظ محلياً.");
+  else toast("تعذّر الحفظ، حاول مرة أخرى.");
+  localSaveAll();
+}
+function setMode(m){ store.mode=m; }
+function initStore(){
+  var hasClaude = typeof window!=="undefined" && window.claude && typeof window.claude.use==="function";
+  if(!hasClaude){ setMode("local"); localLoad(); renderAll(); return; }
+  setMode("pending"); renderAll();
+  window.claude.use("db").then(function(db){
+    if(!db){ setMode("local"); localLoad(); renderAll(); return; }
+    store.db=db; setMode("cloud");
+    db.doc("app/config").onSnapshot(function(snap){
+      if(snap.exists){ var d=snap.data();
+        if(d&&Array.isArray(d.projects)&&Array.isArray(d.people)){ store.config=d; }
+      } else { db.doc("app/config").set(store.config)["catch"](function(){}); }
+      store.loaded=true; renderAll();
+    },function(){ setMode("local"); localLoad(); renderAll(); });
+    db.collection("ipcs").onSnapshot(function(snap){
+      store.ipcs=snap.docs.map(function(d){var v=d.data()||{};v.id=d.id;return v;});
+      store.loaded=true; renderAll();
+    },function(){ });
+  })["catch"](function(){ setMode("local"); localLoad(); renderAll(); });
+}
+
+/* ------------------------------ بيانات العرض التجريبية ------------------------------ */
+function demoData(){
+  function d(off){var x=new Date();x.setDate(x.getDate()-off);
+    return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");}
+  return [
+   {id:"demo1",demo:true,project:"PMCM2 WSP",company:"WSP",ipcNo:"20",events:[
+     {id:"a",status:"receive",date:d(21),person:"Mohammed",note:""},
+     {id:"b",status:"review",date:d(18),person:"Mohammed",note:""},
+     {id:"c",status:"returned",round:1,date:d(12),person:"Adwaa",note:"ملاحظات على كميات الأعمال المدنية"},
+     {id:"e",status:"review",date:d(4),person:"Mohammed",note:""}]},
+   {id:"demo2",demo:true,project:"Almabani-Thumama",company:"Almabani",ipcNo:"8",events:[
+     {id:"a",status:"receive",date:d(30),person:"Faisal",note:""},
+     {id:"b",status:"review",date:d(27),person:"Faisal",note:""},
+     {id:"c",status:"mawared",date:d(15),person:"Othman",note:""},
+     {id:"d",status:"etimad",date:d(9),person:"Othman",note:"تم الاعتماد النهائي"}]},
+   {id:"demo3",demo:true,project:"RTCC-TR",company:"RTCC-TR",ipcNo:"6",events:[
+     {id:"a",status:"receive",date:d(6),person:"Adwaa",note:""},
+     {id:"b",status:"review",date:d(2),person:"Adwaa",note:""}]},
+   {id:"demo4",demo:true,project:"Yuksel - TMER",company:"Yuksel",ipcNo:"1",events:[
+     {id:"a",status:"receive",date:d(11),person:"Othman",note:""},
+     {id:"b",status:"returned",round:1,date:d(7),person:"Othman",note:"نقص في مرفقات المستخلص"},
+     {id:"c",status:"returned",round:2,date:d(1),person:"Adwaa",note:""}]}
+  ];
+}
+function viewRecords(){ return store.ipcs.length ? store.ipcs : demoData(); }
+function isDemoView(){ return store.ipcs.length===0; }
+
+/* ------------------------------ الحالة الحالية للواجهة ------------------------------ */
+var ui={page:"entry",currentId:null,openId:null,filterStatus:"",dirtyIpc:false};
+
+/* ------------------------------ العمود الأيمن ------------------------------ */
+function renderSaved(){
+  var box=$("savedList"); box.textContent="";
+  var recs=viewRecords().slice().sort(function(a,b){
+    var la=lastEvent(a),lb=lastEvent(b);
+    return (lb?lb.date:"")<(la?la.date:"")?-1:1;});
+  $("savedCount").textContent=String(recs.length);
+  if(!recs.length){box.appendChild(el("div","empty","لا توجد مستخلصات محفوظة بعد."));return;}
+  recs.forEach(function(rec){
+    var lv=lastEvent(rec);var s=lv?st(lv.status):null;
+    var b=el("button","saved-item");b.type="button";
+    if(rec.id===ui.currentId)b.setAttribute("aria-current","true");
+    b.appendChild(el("div","t",rec.project+" — IPC "+rec.ipcNo));
+    var m=el("div","m");
+    if(s){var p=el("span","pill "+s.cls,s.label+(lv.status==="returned"&&lv.round?" "+lv.round:""));m.appendChild(p);}
+    if(lv){var dt=el("span","num",fmtDate(lv.date));m.appendChild(dt);}
+    b.appendChild(m);
+    b.addEventListener("click",function(){ loadRecord(rec.id); });
+    box.appendChild(b);
+  });
+}
+function renderProjectsPanel(){
+  var list=$("projList");list.textContent="";
+  $("projCount").textContent=String(store.config.projects.length);
+  sortedProjects().forEach(function(p){
+    var row=el("div","mini-row");
+    row.appendChild(el("span",null,p.name+" · "+p.company));
+    var used=store.ipcs.some(function(r){return r.project===p.name;});
+    var x=el("button","iconbtn","×");x.type="button";x.title=used?"مستخدم في مستخلص محفوظ":"حذف";
+    x.addEventListener("click",function(){
+      if(used){toast("لا يمكن حذف مشروع له مستخلصات محفوظة.");return;}
+      store.config.projects=store.config.projects.filter(function(q){return q.name!==p.name;});
+      saveConfig();toast("تم حذف المشروع.");
+    });
+    row.appendChild(x);list.appendChild(row);
+  });
+}
+function renderPeoplePanel(){
+  var box=$("peopleChips");box.textContent="";
+  sortedPeople().forEach(function(n){
+    var c=el("span","chip",n);
+    var x=el("button",null,"×");x.type="button";x.setAttribute("aria-label","حذف "+n);
+    x.addEventListener("click",function(){
+      if(store.config.people.length<=1){toast("يجب إبقاء اسم واحد على الأقل.");return;}
+      store.config.people=store.config.people.filter(function(q){return q!==n;});
+      saveConfig();toast("تم حذف "+n+".");
+    });
+    c.appendChild(x);box.appendChild(c);
+  });
+}
+/* ------------------------------ صفحة التسجيل ------------------------------ */
+function renderFormSelects(){
+  var projSel=$("fProject");
+  var keepP=projSel.value;
+  projSel.textContent="";
+  var ph=el("option",null,"— اختر المشروع —");ph.value="";projSel.appendChild(ph);
+  sortedProjects().forEach(function(p){var o=el("option",null,p.name);o.value=p.name;projSel.appendChild(o);});
+  projSel.value=keepP||"";
+  var statSel=$("fStatus");
+  if(!statSel.options.length){
+    STATUSES.forEach(function(s){var o=el("option",null,s.label);o.value=s.key;statSel.appendChild(o);});
+  }
+  var perSel=$("fPerson"),keepPer=perSel.value;
+  perSel.textContent="";
+  sortedPeople().forEach(function(n){var o=el("option",null,n);o.value=n;perSel.appendChild(o);});
+  if(keepPer&&store.config.people.indexOf(keepPer)>=0)perSel.value=keepPer;
+}
+function currentRecord(){
+  if(ui.currentId){var byId=store.ipcs.filter(function(r){return r.id===ui.currentId;})[0];if(byId)return byId;
+    var d=demoData().filter(function(r){return r.id===ui.currentId;})[0];if(d)return d;}
+  var proj=$("fProject").value,ipc=$("fIpc").value.trim();
+  if(!proj||!ipc)return null;
+  return store.ipcs.filter(function(r){return r.project===proj&&String(r.ipcNo)===ipc;})[0]||null;
+}
+function syncCompany(){
+  var p=store.config.projects.filter(function(q){return q.name===$("fProject").value;})[0];
+  $("fCompany").value=p?p.company:"";
+}
+function nextRound(rec){
+  if(!rec)return 1;
+  var n=0;(rec.events||[]).forEach(function(e){if(e.status==="returned")n++;});
+  return n+1;
+}
+function syncRoundField(){
+  var isRet=$("fStatus").value==="returned";
+  $("roundField").hidden=!isRet;
+  if(isRet&&!$("fRound").value)$("fRound").value=String(nextRound(currentRecord()));
+  if(!isRet)$("fRound").value="";
+}
+function renderEntryState(){
+  var rec=currentRecord();
+  var stateEl=$("ipcState"),save=$("btnSave"),del=$("btnDeleteIpc");
+  if(rec){
+    var lv=lastEvent(rec);
+    stateEl.textContent="مستخلص موجود · "+(rec.events||[]).length+" مرحلة · آخر حالة: "+(lv?st(lv.status).label:"—");
+    save.textContent="إضافة مرحلة"; del.hidden=!!rec.demo;
+    $("btnExcelIpc").hidden=false; $("btnPdfIpc").hidden=false;
+  }else{
+    stateEl.textContent="مستخلص جديد";
+    save.textContent="حفظ الحالة"; del.hidden=true;
+    $("btnExcelIpc").hidden=true; $("btnPdfIpc").hidden=true;
+  }
+  renderHistory(rec);
+  syncRoundField();
+}
+function renderHistory(rec){
+  var card=$("historyCard"),body=$("historyBody");
+  if(!rec||!(rec.events||[]).length){card.hidden=true;body.textContent="";return;}
+  card.hidden=false;
+  var evs=sortedEvents(rec);
+  $("historyMeta").textContent=rec.project+" · IPC "+rec.ipcNo+(rec.demo?" (تجريبي)":"");
+  body.textContent="";
+  evs.forEach(function(e,i){
+    var s=st(e.status);
+    var tr=el("tr");
+    tr.appendChild(el("td","num",String(i+1)));
+    var td1=el("td");td1.appendChild(el("span","pill "+s.cls,s.label+(e.status==="returned"&&e.round?" "+e.round:"")));tr.appendChild(td1);
+    tr.appendChild(el("td","num",fmtDate(e.date)));
+    tr.appendChild(el("td",null,e.person||"—"));
+    tr.appendChild(el("td",null,e.note||"—"));
+    var td6=el("td");
+    if(!rec.demo){
+      var x=el("button","iconbtn","×");x.type="button";x.title="حذف هذه المرحلة";
+      x.addEventListener("click",function(){
+        if(!confirm("حذف مرحلة \""+s.label+"\" بتاريخ "+fmtDate(e.date)+"؟"))return;
+        rec.events=(rec.events||[]).filter(function(q){return q.id!==e.id;});
+        if(!rec.events.length){deleteRecord(rec.id);ui.currentId=null;toast("تم حذف المستخلص بالكامل.");}
+        else{saveRecord(rec);toast("تم حذف المرحلة.");}
+      });
+      td6.appendChild(x);
+    }
+    tr.appendChild(td6);
+    body.appendChild(tr);
+  });
+}
+function loadRecord(id){
+  var rec=viewRecords().filter(function(r){return r.id===id;})[0];
+  if(!rec)return;
+  ui.currentId=id;
+  showPage("entry");
+  $("fProject").value=rec.project; syncCompany();
+  $("fIpc").value=rec.ipcNo;
+  var lv=lastEvent(rec);
+  $("fStatus").value= lv ? NEXT_STATUS[lv.status] : "receive";
+  $("fDate").value=todayISO();
+  if(lv&&store.config.people.indexOf(lv.person)>=0)$("fPerson").value=lv.person;
+  $("fNote").value="";
+  renderEntryState();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function clearForm(){
+  ui.currentId=null;
+  $("fProject").value="";$("fCompany").value="";$("fIpc").value="";
+  $("fStatus").value="receive";$("fDate").value=todayISO();$("fNote").value="";$("fRound").value="";
+  renderEntryState();renderSaved();
+}
+function saveStatus(){
+  var proj=$("fProject").value, ipc=$("fIpc").value.trim();
+  if(!proj){toast("اختر المشروع أولاً.");$("fProject").focus();return;}
+  if(!ipc){toast("أدخل رقم المستخلص.");$("fIpc").focus();return;}
+  var date=$("fDate").value||todayISO();
+  var person=$("fPerson").value||store.config.people[0]||"";
+  var status=$("fStatus").value;
+  var rec=store.ipcs.filter(function(r){return r.project===proj&&String(r.ipcNo)===ipc;})[0];
+  var isNew=!rec;
+  if(isNew){
+    var p=store.config.projects.filter(function(q){return q.name===proj;})[0];
+    rec={id:uid(),project:proj,company:p?p.company:$("fCompany").value,ipcNo:ipc,events:[],createdAt:new Date().toISOString()};
+  }
+  var ev={id:uid(),status:status,date:date,person:person,note:$("fNote").value.trim(),ts:Date.now()};
+  if(status==="returned")ev.round=parseInt($("fRound").value,10)||nextRound(rec);
+  rec.events=(rec.events||[]).concat([ev]);
+  ui.currentId=rec.id;
+  saveRecord(rec);
+  $("fNote").value="";$("fRound").value="";
+  toast(isNew?"تم حفظ المستخلص وتسجيل أول مرحلة.":"تم تسجيل المرحلة.");
+}
+
+/* ------------------------------ صفحة الملخص ------------------------------ */
+function trackEl(rec){
+  var lv=lastEvent(rec); var step=lv?st(lv.status).step:0;
+  var rt=0;(rec.events||[]).forEach(function(e){if(e.status==="returned")rt++;});
+  var w=el("span","track");
+  for(var i=1;i<=4;i++){
+    var b=el("i");
+    if(i<=step)b.className="on";
+    if(i===2&&lv&&lv.status==="returned")b.className="warn";
+    w.appendChild(b);
+  }
+  if(rt){var r=el("span","rtn","↺"+rt);w.appendChild(r);}
+  return w;
+}
+function filteredRecords(){
+  var q=$("qSearch").value.trim().toLowerCase();
+  var fp=$("qProject").value, fper=$("qPerson").value, fs=$("qStatus").value||ui.filterStatus;
+  return viewRecords().filter(function(r){
+    var lv=lastEvent(r);
+    if(fp&&r.project!==fp)return false;
+    if(fper&&(!lv||lv.person!==fper))return false;
+    if(fs&&(!lv||lv.status!==fs))return false;
+    if(q){
+      var hay=(r.project+" "+r.company+" "+r.ipcNo).toLowerCase();
+      if(hay.indexOf(q)<0)return false;
+    }
+    return true;
+  }).sort(function(a,b){
+    var la=lastEvent(a),lb=lastEvent(b);
+    return (lb?lb.date:"")<(la?la.date:"")?-1:1;});
+}
+function renderStats(){
+  var box=$("stats");box.textContent="";
+  var recs=viewRecords();
+  var defs=[{key:"",label:"إجمالي المستخلصات",count:recs.length}];
+  STATUSES.forEach(function(s){
+    var n=recs.filter(function(r){var lv=lastEvent(r);return lv&&lv.status===s.key;}).length;
+    defs.push({key:s.key,label:s.short,count:n});
+  });
+  defs.forEach(function(d){
+    var b=el("button","stat");b.type="button";
+    b.setAttribute("aria-pressed",String(ui.filterStatus===d.key&&d.key!==""));
+    b.appendChild(el("span","v",String(d.count)));
+    b.appendChild(el("span","k",d.label));
+    b.addEventListener("click",function(){
+      ui.filterStatus = (ui.filterStatus===d.key)?"":d.key;
+      $("qStatus").value=ui.filterStatus;
+      renderSummary();renderStats();
+    });
+    box.appendChild(b);
+  });
+}
+function renderSummaryFilters(){
+  var qp=$("qProject"),keep=qp.value;
+  qp.textContent="";var o=el("option",null,"الكل");o.value="";qp.appendChild(o);
+  sortedProjects().forEach(function(p){var x=el("option",null,p.name);x.value=p.name;qp.appendChild(x);});
+  qp.value=keep||"";
+  var qs=$("qPerson"),k2=qs.value;
+  qs.textContent="";var o2=el("option",null,"الكل");o2.value="";qs.appendChild(o2);
+  sortedPeople().forEach(function(n){var x=el("option",null,n);x.value=n;qs.appendChild(x);});
+  qs.value=k2||"";
+  var qst=$("qStatus");
+  if(!qst.options.length){
+    var o3=el("option",null,"الكل");o3.value="";qst.appendChild(o3);
+    STATUSES.forEach(function(s){var x=el("option",null,s.label);x.value=s.key;qst.appendChild(x);});
+  }
+}
+function renderSummary(){
+  var body=$("summaryBody");body.textContent="";
+  var recs=filteredRecords();
+  if(!recs.length){
+    var tr=el("tr"),td=el("td","empty","لا توجد نتائج مطابقة.");td.colSpan=8;tr.appendChild(td);body.appendChild(tr);return;
+  }
+  recs.forEach(function(rec){
+    var lv=lastEvent(rec),s=lv?st(lv.status):null;
+    var tr=el("tr","row");
+    tr.setAttribute("tabindex","0");tr.setAttribute("role","button");
+    tr.setAttribute("aria-expanded",String(ui.openId===rec.id));
+    var t1=el("td");t1.appendChild(el("div","proj",rec.project));tr.appendChild(t1);
+    tr.appendChild(el("td","co",rec.company));
+    tr.appendChild(el("td","num",rec.ipcNo));
+    var t4=el("td");t4.appendChild(trackEl(rec));tr.appendChild(t4);
+    var t5=el("td");
+    if(s)t5.appendChild(el("span","pill "+s.cls,s.label+(lv.status==="returned"&&lv.round?" "+lv.round:"")));
+    tr.appendChild(t5);
+    tr.appendChild(el("td","num",lv?fmtDate(lv.date):"—"));
+    tr.appendChild(el("td",null,lv?lv.person:"—"));
+    tr.appendChild(el("td","co",lv?sinceText(lv.date):"—"));
+    function toggle(){ui.openId=(ui.openId===rec.id)?null:rec.id;renderSummary();}
+    tr.addEventListener("click",toggle);
+    tr.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();toggle();}});
+    body.appendChild(tr);
+    if(ui.openId===rec.id)body.appendChild(detailRow(rec));
+  });
+}
+function detailRow(rec){
+  var tr=el("tr","detail"),td=el("td");td.colSpan=8;
+  var wrap=el("div","timeline");
+  var evs=sortedEvents(rec);
+  var ul=el("ul","tl");
+  evs.forEach(function(e,i){
+    var s=st(e.status);
+    var li=el("li",i===evs.length-1?"last":"");
+    li.appendChild(el("span","pill "+s.cls,s.label+(e.status==="returned"&&e.round?" "+e.round:"")));
+    li.appendChild(el("span","num",fmtDate(e.date)));
+    li.appendChild(el("span","who","المسؤول: "+(e.person||"—")));
+    if(i>0){
+      var g=daysBetween(evs[i-1].date,e.date);
+      li.appendChild(el("span","gap","(+"+(isNaN(g)?"—":g)+" يوم)"));
+    }
+    if(e.note)li.appendChild(el("span","note",e.note));
+    ul.appendChild(li);
+  });
+  wrap.appendChild(ul);
+  var act=el("div","actions");act.style.marginTop="10px";
+  var open=el("button","btn small","فتح في صفحة التسجيل");open.type="button";
+  open.addEventListener("click",function(ev){ev.stopPropagation();loadRecord(rec.id);});
+  act.appendChild(open);
+  if(!rec.demo){
+    var del=el("button","btn small danger","حذف المستخلص");del.type="button";
+    del.addEventListener("click",function(ev){ev.stopPropagation();
+      if(!confirm("حذف مستخلص "+rec.project+" — IPC "+rec.ipcNo+" وكل مراحله؟"))return;
+      if(ui.currentId===rec.id)ui.currentId=null;
+      ui.openId=null;deleteRecord(rec.id);toast("تم حذف المستخلص.");});
+    act.appendChild(del);
+  }
+  wrap.appendChild(act);
+  td.appendChild(wrap);tr.appendChild(td);
+  tr.addEventListener("click",function(ev){ev.stopPropagation();});
+  return tr;
+}
+
+/* ------------------------------ التصدير ------------------------------ */
+function saveFile(name,blob){
+  function fallback(){
+    var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(a.href);},3000);
+  }
+  if(window.claude&&typeof window.claude.use==="function"){
+    window.claude.use("downloads").then(function(d){
+      if(!d){fallback();return;}
+      d.save({filename:name,data:blob}).then(function(){toast("تم حفظ الملف.");})
+       ["catch"](function(e){
+          var c=(e&&e.code)||"";
+          if(c==="declined")return;
+          if(c==="rate_limited"){toast("انتظر قليلاً ثم أعد المحاولة.");return;}
+          toast("تعذّر حفظ الملف.");
+       });
+    })["catch"](fallback);
+  } else fallback();
+}
+function summaryRows(recs){
+  var rows=[["المشروع","الشركة","رقم المستخلص","الحالة الحالية","تاريخ آخر حالة","المسؤول","عدد المراحل","عدد مرات الترجيع"]];
+  recs.forEach(function(r){
+    var lv=lastEvent(r),rt=0;(r.events||[]).forEach(function(e){if(e.status==="returned")rt++;});
+    rows.push([r.project,r.company,r.ipcNo,
+      lv?st(lv.status).label+(lv.status==="returned"&&lv.round?" "+lv.round:""):"",
+      lv?fmtDate(lv.date):"",lv?lv.person:"",(r.events||[]).length,rt]);
+  });
+  return rows;
+}
+function logRows(recs){
+  var rows=[["المشروع","الشركة","رقم المستخلص","م","المرحلة","رقم الترجيع","التاريخ","المسؤول","الملاحظة"]];
+  recs.forEach(function(r){
+    sortedEvents(r).forEach(function(e,i){
+      rows.push([r.project,r.company,r.ipcNo,i+1,st(e.status).label,e.round||"",fmtDate(e.date),e.person||"",e.note||""]);
+    });
+  });
+  return rows;
+}
+function ipcRows(rec){
+  var rows=[["م","المرحلة","رقم الترجيع","التاريخ","المسؤول","عدد الأيام","الملاحظة"]];
+  var evs=sortedEvents(rec);
+  evs.forEach(function(e,i){
+    var g=i>0?daysBetween(evs[i-1].date,e.date):"";
+    rows.push([i+1,st(e.status).label,e.round||"",fmtDate(e.date),e.person||"",g===""?"":g,e.note||""]);
+  });
+  return rows;
+}
+function sheetFrom(rows,widths){
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"]=widths.map(function(w){return {wch:w};});
+  return ws;
+}
+function exportExcel(){
+  if(typeof XLSX==="undefined"){toast("تعذّر تحميل مكتبة Excel، تحقق من الاتصال.");return;}
+  var recs=filteredRecords();
+  if(!recs.length){toast("لا توجد بيانات للتصدير.");return;}
+  var wb=XLSX.utils.book_new(); wb.Workbook={Views:[{RTL:true}]};
+  XLSX.utils.book_append_sheet(wb,sheetFrom(summaryRows(recs),[22,18,12,20,14,12,10,10]),"الملخص");
+  XLSX.utils.book_append_sheet(wb,sheetFrom(logRows(recs),[22,18,12,5,20,10,14,12,34]),"السجل الكامل");
+  var out=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+  saveFile("ipc-summary.xlsx",new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+}
+function exportExcelIpc(){
+  if(typeof XLSX==="undefined"){toast("تعذّر تحميل مكتبة Excel، تحقق من الاتصال.");return;}
+  var rec=currentRecord(); if(!rec)return;
+  var wb=XLSX.utils.book_new(); wb.Workbook={Views:[{RTL:true}]};
+  var head=[["المشروع",rec.project],["الشركة",rec.company],["رقم المستخلص",rec.ipcNo],[]];
+  var ws=sheetFrom(head.concat(ipcRows(rec)),[6,22,10,14,14,10,34]);
+  XLSX.utils.book_append_sheet(wb,ws,"سجل المراحل");
+  var out=XLSX.write(wb,{bookType:"xlsx",type:"array"});
+  saveFile("IPC-"+rec.ipcNo+".xlsx",new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+}
+function reportNode(title,subtitle,rows){
+  var wrap=el("div");
+  wrap.setAttribute("dir","rtl");
+  wrap.style.cssText="background:#FFFFFF;color:#16241C;font-family:'IBM Plex Sans Arabic',sans-serif;width:1000px;padding:30px 34px";
+  var h=el("div");h.style.cssText="border-bottom:2px solid #006C35;padding-bottom:10px;margin-bottom:18px";
+  var t=el("div",null,title);
+  t.style.cssText="font-family:'Cairo',sans-serif;font-size:22px;font-weight:700;color:#006C35";
+  h.appendChild(t);
+  var sIt=el("div",null,subtitle);
+  sIt.style.cssText="font-size:12px;color:#84918A;margin-top:4px";
+  h.appendChild(sIt);
+  wrap.appendChild(h);
+  var tbl=el("table");tbl.style.cssText="width:100%;border-collapse:collapse;font-size:12.5px";
+  var thead=el("thead"),trh=el("tr");
+  rows[0].forEach(function(c){
+    var th=el("th",null,String(c));
+    th.style.cssText="background:#E7F2EB;color:#006C35;text-align:right;padding:8px 10px;border:1px solid #DCE5DF;font-weight:700;font-size:12px";
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);tbl.appendChild(thead);
+  var tb=el("tbody");
+  rows.slice(1).forEach(function(r,i){
+    var tr=el("tr");
+    if(i%2)tr.style.background="#F4F8F5";
+    r.forEach(function(c){
+      var td=el("td",null,c===""||c==null?"—":String(c));
+      td.style.cssText="padding:7px 10px;border:1px solid #EAF0EC;text-align:right;vertical-align:middle";
+      tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb);wrap.appendChild(tbl);
+  var f=el("div",null,"صدر من نظام تتبّع مراحل المستخلصات · "+fmtDate(todayISO()));
+  f.style.cssText="margin-top:16px;font-size:11px;color:#84918A";
+  wrap.appendChild(f);
+  return wrap;
+}
+function exportPdfNode(node,filename){
+  if(typeof html2canvas==="undefined"||!window.jspdf){toast("تعذّر تحميل مكتبة PDF، تحقق من الاتصال.");return;}
+  var host=el("div");
+  host.style.cssText="position:fixed;top:0;left:-12000px;width:1000px;background:#FFFFFF;z-index:-1";
+  host.appendChild(node);document.body.appendChild(host);
+  toast("جارٍ تجهيز ملف PDF…");
+  html2canvas(node,{scale:2,backgroundColor:"#FFFFFF"}).then(function(canvas){
+    document.body.removeChild(host);
+    var jsPDF=window.jspdf.jsPDF;
+    var pdf=new jsPDF({orientation:"p",unit:"pt",format:"a4"});
+    var margin=22;
+    var pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+    var iw=pw-margin*2, ih=canvas.height*iw/canvas.width;
+    var pageH=ph-margin*2, pages=Math.max(1,Math.ceil(ih/pageH));
+    var img=canvas.toDataURL("image/jpeg",0.92);
+    for(var i=0;i<pages;i++){
+      if(i)pdf.addPage();
+      pdf.addImage(img,"JPEG",margin,margin-i*pageH,iw,ih);
+    }
+    saveFile(filename,pdf.output("blob"));
+  })["catch"](function(){
+    if(host.parentNode)document.body.removeChild(host);
+    toast("تعذّر إنشاء ملف PDF.");
+  });
+}
+function exportPdf(){
+  var recs=filteredRecords();
+  if(!recs.length){toast("لا توجد بيانات للتصدير.");return;}
+  var node=reportNode("ملخص حالة المستخلصات","عدد المستخلصات: "+recs.length,summaryRows(recs));
+  exportPdfNode(node,"ipc-summary.pdf");
+}
+function exportPdfIpc(){
+  var rec=currentRecord(); if(!rec)return;
+  var node=reportNode(rec.project+" — مستخلص رقم "+rec.ipcNo,
+    "الشركة: "+rec.company+" · عدد المراحل: "+(rec.events||[]).length, ipcRows(rec));
+  exportPdfNode(node,"IPC-"+rec.ipcNo+".pdf");
+}
+/* ------------------------------ التنقل والربط ------------------------------ */
+function showPage(p){
+  ui.page=p;
+  $("pageEntry").hidden=(p!=="entry");
+  $("pageSummary").hidden=(p!=="summary");
+  $("tabEntry").setAttribute("aria-selected",String(p==="entry"));
+  $("tabSummary").setAttribute("aria-selected",String(p==="summary"));
+}
+function renderAll(){
+  renderFormSelects();
+  renderSummaryFilters();
+  renderSaved();
+  renderProjectsPanel();
+  renderPeoplePanel();
+  renderEntryState();
+  renderStats();
+  renderSummary();
+  $("demoBanner").hidden=!isDemoView();
+}
+function wire(){
+  $("tabEntry").addEventListener("click",function(){showPage("entry");});
+  $("tabSummary").addEventListener("click",function(){showPage("summary");renderStats();renderSummary();});
+  $("fProject").addEventListener("change",function(){syncCompany();ui.currentId=null;renderEntryState();renderSaved();});
+  $("fIpc").addEventListener("input",function(){ui.currentId=null;renderEntryState();renderSaved();});
+  $("fStatus").addEventListener("change",syncRoundField);
+  $("btnSave").addEventListener("click",saveStatus);
+  $("btnClear").addEventListener("click",clearForm);
+  $("btnNew").addEventListener("click",function(){showPage("entry");clearForm();$("fProject").focus();});
+  $("btnDeleteIpc").addEventListener("click",function(){
+    var rec=currentRecord();if(!rec||rec.demo)return;
+    if(!confirm("حذف مستخلص "+rec.project+" — IPC "+rec.ipcNo+" وكل مراحله؟"))return;
+    deleteRecord(rec.id);ui.currentId=null;clearForm();toast("تم حذف المستخلص.");
+  });
+  $("btnAddProject").addEventListener("click",function(){
+    var n=$("npProject").value.trim(),c=$("npCompany").value.trim(),t=$("npType").value;
+    if(!n){toast("اكتب اسم المشروع.");$("npProject").focus();return;}
+    if(!c){toast("اكتب اسم الشركة.");$("npCompany").focus();return;}
+    if(store.config.projects.some(function(p){return p.name.toLowerCase()===n.toLowerCase();})){
+      toast("هذا المشروع مضاف مسبقاً.");return;}
+    store.config.projects=store.config.projects.concat([{name:n,company:c,type:t}]);
+    saveConfig();
+    $("npProject").value="";$("npCompany").value="";
+    $("fProject").value=n;syncCompany();renderEntryState();
+    toast("تمت إضافة المشروع "+n+".");
+  });
+  $("btnAddPerson").addEventListener("click",function(){
+    var n=$("npPerson").value.trim();
+    if(!n){toast("اكتب اسم الشخص.");$("npPerson").focus();return;}
+    if(store.config.people.some(function(p){return p.toLowerCase()===n.toLowerCase();})){
+      toast("هذا الاسم موجود مسبقاً.");return;}
+    store.config.people=store.config.people.concat([n]);
+    saveConfig();$("npPerson").value="";$("fPerson").value=n;
+    toast("تمت إضافة "+n+".");
+  });
+  $("npProject").addEventListener("keydown",function(e){if(e.key==="Enter")$("btnAddProject").click();});
+  $("npCompany").addEventListener("keydown",function(e){if(e.key==="Enter")$("btnAddProject").click();});
+  $("npPerson").addEventListener("keydown",function(e){if(e.key==="Enter")$("btnAddPerson").click();});
+  ["qSearch","qProject","qPerson"].forEach(function(id){
+    $(id).addEventListener("input",renderSummary);$(id).addEventListener("change",renderSummary);});
+  $("qStatus").addEventListener("change",function(){ui.filterStatus=$("qStatus").value;renderStats();renderSummary();});
+  $("btnExcel").addEventListener("click",exportExcel);
+  $("btnPdf").addEventListener("click",exportPdf);
+  $("btnExcelIpc").addEventListener("click",exportExcelIpc);
+  $("btnPdfIpc").addEventListener("click",exportPdfIpc);
+  $("btnPrint").addEventListener("click",function(){window.print();});
+}
+
+/* ------------------------------ البدء ------------------------------ */
+$("fDate").value=todayISO();
+$("fStatus").textContent="";
+STATUSES.forEach(function(s){var o=el("option",null,s.label);o.value=s.key;$("fStatus").appendChild(o);});
+wire();
+renderAll();
+initStore();
+})();
+</script>
