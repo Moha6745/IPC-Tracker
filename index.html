@@ -145,6 +145,19 @@ details.manage summary::before{content:"▾ ";color:var(--ink-3)}
 .rtn{font-size:11px;color:var(--s3-fg);font-weight:600}
 
 /* banner */
+.conn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-weight:600;font-size:12px;color:var(--ink-2);
+  background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 13px;cursor:pointer;
+  transition:border-color .15s ease,color .15s ease}
+.conn:hover{border-color:var(--accent-2);color:var(--accent)}
+.conn i{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
+.conn.on i{background:var(--accent)}
+.conn.off i{background:var(--s2-fg)}
+.conn.bad i{background:var(--danger)}
+.conn.wait i{background:var(--s1-fg);animation:conn-pulse 1.2s ease-in-out infinite}
+@keyframes conn-pulse{50%{opacity:.25}}
+.sync-msg{color:var(--ink-3);font-size:12px;margin:0 0 10px;line-height:1.55}
+.sync-msg.bad{color:var(--danger)}
+.sync-cfg{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;direction:ltr;text-align:left;min-height:96px}
 .banner{display:flex;align-items:center;gap:10px;background:var(--accent-soft);border:1px solid var(--line);
   border-radius:10px;padding:9px 13px;margin-bottom:14px;font-size:12.5px;color:var(--ink-2)}
 .banner b{color:var(--accent)}
@@ -212,6 +225,7 @@ tr.detail > td{background:var(--surface-2);padding:0}
         <button role="tab" id="tabEntry" aria-selected="true">تسجيل حالة</button>
         <button role="tab" id="tabSummary" aria-selected="false">ملخص المستخلصات</button>
       </div>
+      <button class="conn off" type="button" id="connBtn" aria-label="حالة المزامنة"><i></i><span id="connText">—</span></button>
     </div>
   </header>
 
@@ -254,6 +268,32 @@ tr.detail > td{background:var(--surface-2);padding:0}
           <button class="btn primary block small" id="btnAddPerson">إضافة</button>
         </div>
         <div class="chips" id="peopleChips"></div>
+      </section>
+
+      <!-- ============ المزامنة السحابية ============ -->
+      <section class="card" id="syncCard">
+        <div class="head">
+          <h2 class="ttl">المزامنة <span class="en">(Firebase)</span></h2>
+          <span class="hint" id="syncBadge">—</span>
+        </div>
+        <p class="sync-msg" id="syncMsg"></p>
+        <button class="btn small block" id="btnRetry" hidden>إعادة محاولة الاتصال</button>
+        <button class="btn small block" id="btnUploadLocal" hidden>رفع بيانات هذا الجهاز إلى السحابة</button>
+        <details class="manage" id="syncSetup">
+          <summary>إعدادات الاتصال</summary>
+          <div class="grid" style="margin-top:10px">
+            <div class="field">
+              <label for="fbCfg">إعدادات مشروع Firebase</label>
+              <textarea id="fbCfg" class="sync-cfg" rows="7" spellcheck="false"
+                placeholder="const firebaseConfig = {&#10;  apiKey: &quot;...&quot;,&#10;  projectId: &quot;...&quot;,&#10;  ...&#10;};"></textarea>
+            </div>
+            <div class="actions">
+              <button class="btn primary small" id="btnFbConnect">اتصال</button>
+              <button class="btn small danger" id="btnFbForget" hidden>قطع الاتصال</button>
+            </div>
+            <p class="hint" style="margin:0">انسخ المقطع من: وحدة تحكم Firebase ← إعدادات المشروع ← تطبيقات الويب. هذه المفاتيح عامة وليست أسراراً؛ الحماية تكون بقواعد الأمان في ملف firestore.rules.</p>
+          </div>
+        </details>
       </section>
     </aside>
 
@@ -345,7 +385,9 @@ tr.detail > td{background:var(--surface-2);padding:0}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -397,25 +439,52 @@ function sortedEvents(rec){return (rec.events||[]).slice().sort(function(a,b){
 function lastEvent(rec){var e=sortedEvents(rec);return e.length?e[e.length-1]:null;}
 
 /* ------------------------------ التخزين ------------------------------ */
-var LS_CFG="ipctracker.config.v1", LS_IPC="ipctracker.ipcs.v1";
+var LS_CFG="ipctracker.config.v1",       /* إعدادات الوضع المحلي */
+    LS_IPC="ipctracker.ipcs.v1",         /* مستخلصات الوضع المحلي */
+    LS_MIR="ipctracker.cloudcache.v1",   /* نسخة احتياطية من السحابة للعمل دون اتصال */
+    LS_FB ="ipctracker.firebase.v1";     /* إعدادات مشروع Firebase التي أدخلها المستخدم */
+
 var store={
-  mode:"pending", db:null,
+  mode:"pending",            /* pending | local | cloud */
+  backend:"",                /* claude | firebase */
+  db:null, app:null, unsub:[],
+  conn:{state:"pending",detail:""},
   config:{projects:SEED_PROJECTS.slice(),people:SEED_PEOPLE.slice()},
   ipcs:[],
   loaded:false
 };
+
+function readJSON(key){ try{ return JSON.parse(localStorage.getItem(key)||"null"); }catch(e){ return null; } }
+function writeJSON(key,val){ try{ localStorage.setItem(key,JSON.stringify(val)); return true; }catch(e){ return false; } }
+function localIpcs(){ var r=readJSON(LS_IPC); return Array.isArray(r)?r:[]; }
+
 function localLoad(){
-  try{var c=JSON.parse(localStorage.getItem(LS_CFG)||"null");
-      if(c&&c.projects&&c.people)store.config=c;}catch(e){}
-  try{var r=JSON.parse(localStorage.getItem(LS_IPC)||"null");if(Array.isArray(r))store.ipcs=r;}catch(e){}
+  var c=readJSON(LS_CFG);
+  if(c&&Array.isArray(c.projects)&&Array.isArray(c.people)) store.config=c;
+  var r=readJSON(LS_IPC);
+  if(Array.isArray(r)) store.ipcs=r;
   store.loaded=true;
 }
 function localSaveAll(){
-  try{localStorage.setItem(LS_CFG,JSON.stringify(store.config));
-      localStorage.setItem(LS_IPC,JSON.stringify(store.ipcs));}catch(e){}
+  writeJSON(LS_CFG,store.config);
+  if(!writeJSON(LS_IPC,store.ipcs)) toast("امتلأت مساحة التخزين — احذف مستخلصات قديمة.");
 }
+/* في الوضع السحابي نحتفظ بنسخة محلية للقراءة عند انقطاع الاتصال */
+function mirrorCloud(){
+  writeJSON(LS_MIR,{config:store.config,ipcs:store.ipcs,at:new Date().toISOString()});
+}
+/* عند فشل السحابة: نفضّل آخر نسخة سحابية، وإلا بيانات الوضع المحلي */
+function loadFallback(){
+  var m=readJSON(LS_MIR), r=localIpcs();
+  if(m&&Array.isArray(m.ipcs)&&(m.ipcs.length||!r.length)){
+    if(m.config&&Array.isArray(m.config.projects)&&Array.isArray(m.config.people)) store.config=m.config;
+    store.ipcs=m.ipcs; store.loaded=true; return;
+  }
+  localLoad();
+}
+
 function saveConfig(){
-  if(store.mode==="cloud"&&store.db){store.db.doc("app/config").set(store.config)["catch"](dbErr);}
+  if(store.mode==="cloud"&&store.db){ store.db.doc("app/config").set(store.config)["catch"](dbErr); }
   else localSaveAll();
   renderAll();
 }
@@ -423,72 +492,164 @@ function saveRecord(rec){
   rec.updatedAt=new Date().toISOString();
   var i=store.ipcs.findIndex(function(r){return r.id===rec.id;});
   if(i<0)store.ipcs.push(rec); else store.ipcs[i]=rec;
-  if(store.mode==="cloud"&&store.db){store.db.doc("ipcs/"+rec.id).set(rec)["catch"](dbErr);}
+  if(store.mode==="cloud"&&store.db){ store.db.doc("ipcs/"+rec.id).set(rec)["catch"](dbErr); }
   else localSaveAll();
   renderAll();
 }
 function deleteRecord(id){
   store.ipcs=store.ipcs.filter(function(r){return r.id!==id;});
-  if(store.mode==="cloud"&&store.db){store.db.doc("ipcs/"+id)["delete"]()["catch"](dbErr);}
+  if(store.mode==="cloud"&&store.db){ store.db.doc("ipcs/"+id)["delete"]()["catch"](dbErr); }
   else localSaveAll();
   renderAll();
 }
+function errText(e){
+  var c=(e&&e.code)||"";
+  if(c==="permission-denied"||c==="revoked"||c==="not_granted") return "قواعد الأمان ترفض الوصول — راجع ملف firestore.rules.";
+  if(c==="unauthenticated") return "يلزم تسجيل الدخول — فعّل «الدخول المجهول» في Firebase Authentication.";
+  if(c==="unavailable") return "لا يوجد اتصال بالإنترنت.";
+  if(c==="failed-precondition") return "قاعدة بيانات Firestore غير مُهيّأة في هذا المشروع.";
+  if(c==="not-found") return "لم يُعثر على قاعدة بيانات Firestore في هذا المشروع.";
+  if(c==="quota_exceeded"||c==="resource-exhausted") return "امتلأت مساحة التخزين.";
+  return c || (e&&e.message) || "خطأ غير معروف";
+}
 function dbErr(e){
-  var code=(e&&e.code)||"";
-  if(code==="quota_exceeded")toast("امتلأت مساحة التخزين — احذف مستخلصات قديمة.");
-  else if(code==="revoked"||code==="not_granted")toast("تعذّر الحفظ المشترك — تم الحفظ محلياً.");
-  else toast("تعذّر الحفظ، حاول مرة أخرى.");
-  localSaveAll();
+  toast("تعذّر الحفظ في السحابة: "+errText(e));
+  mirrorCloud();
 }
 function setMode(m){ store.mode=m; }
-/* إعدادات Firebase — تُملأ من وحدة تحكم Firebase (مفاتيح عامة، ليست أسراراً) */
-var FIREBASE_CONFIG={
-  apiKey:"",
-  authDomain:"",
-  projectId:"",
-  storageBucket:"",
-  messagingSenderId:"",
-  appId:""
-};
-function goLocal(){ setMode("local"); localLoad(); renderAll(); }
+
+/* --------------------- إعدادات Firebase ---------------------
+   المفاتيح أدناه عامة وليست أسراراً؛ الحماية تكون بقواعد الأمان في Firestore.
+   مصدرها بالترتيب: ما أدخله المستخدم في الواجهة، ثم ملف firebase-config.js. */
+var FB_KEYS=["apiKey","authDomain","projectId","storageBucket","messagingSenderId","appId","measurementId"];
+function fbValid(c){ return !!(c&&c.apiKey&&c.projectId); }
+function fbFromFile(){ var c=(typeof window!=="undefined")?window.FIREBASE_CONFIG:null; return fbValid(c)?c:null; }
+function fbFromStorage(){ var c=readJSON(LS_FB); return fbValid(c)?c:null; }
+function fbConfig(){ return fbFromStorage()||fbFromFile(); }
+function fbSave(c){ return writeJSON(LS_FB,c); }
+function fbForget(){ try{ localStorage.removeItem(LS_FB); }catch(e){} }
+/* يقبل JSON أو مقطع الكود المنسوخ من وحدة تحكم Firebase كما هو */
+function fbParse(text){
+  var s=String(text||""), a=s.indexOf("{"), b=s.lastIndexOf("}");
+  if(a<0||b<=a) return null;
+  s=s.slice(a,b+1)
+     .replace(/\/\*[\s\S]*?\*\//g,"")
+     .replace(/(^|[\n\r])[ \t]*\/\/[^\n\r]*/g,"$1")
+     .replace(/'/g,'"')
+     .replace(/([{,]\s*)([A-Za-z_$][\w$]*)\s*:/g,'$1"$2":')
+     .replace(/,(\s*[}\]])/g,"$1");
+  var o=null; try{ o=JSON.parse(s); }catch(e){ return null; }
+  var out={};
+  FB_KEYS.forEach(function(k){ if(o&&typeof o[k]==="string"&&o[k].trim()) out[k]=o[k].trim(); });
+  return fbValid(out)?out:null;
+}
+
+/* --------------------- حالة الاتصال --------------------- */
+var CONN_LABEL={pending:"جارٍ الاتصال…",cloud:"متصل بالسحابة",local:"محلي (هذا الجهاز)",error:"تعذّر الاتصال"};
+function setConn(state,detail){ store.conn={state:state,detail:detail||""}; renderConn(); }
+
+/* --------------------- الربط بقاعدة البيانات --------------------- */
+function detachDb(){
+  store.unsub.forEach(function(u){ try{ u(); }catch(e){} });
+  store.unsub=[];
+}
 /* يعمل مع تخزين Claude ومع Firestore — الواجهتان متطابقتان */
-function attachDb(db){
-  store.db=db; setMode("cloud");
-  db.doc("app/config").onSnapshot(function(snap){
-    if(snap.exists){ var d=snap.data();
-      if(d&&Array.isArray(d.projects)&&Array.isArray(d.people)){ store.config=d; }
-    } else { db.doc("app/config").set(store.config)["catch"](function(){}); }
-    store.loaded=true; renderAll();
-  },function(){ goLocal(); });
-  db.collection("ipcs").onSnapshot(function(snap){
-    store.ipcs=snap.docs.map(function(d){var v=d.data()||{};v.id=d.id;return v;});
-    store.loaded=true; renderAll();
-  },function(){ });
+function attachDb(db,backend){
+  detachDb();
+  store.db=db; store.backend=backend||""; setMode("cloud"); setConn("pending","");
+  var gotCfg=false, gotIpc=false;
+  function ready(){ if(gotCfg&&gotIpc){ setConn("cloud",""); mirrorCloud(); } }
+  store.unsub.push(db.doc("app/config").onSnapshot(function(snap){
+    if(snap.exists){
+      var d=snap.data();
+      if(d&&Array.isArray(d.projects)&&Array.isArray(d.people)) store.config={projects:d.projects,people:d.people};
+    } else {
+      db.doc("app/config").set(store.config)["catch"](function(){});
+    }
+    gotCfg=true; store.loaded=true; ready(); renderAll();
+  },cloudFail));
+  store.unsub.push(db.collection("ipcs").onSnapshot(function(snap){
+    store.ipcs=snap.docs.map(function(d){ var v=d.data()||{}; v.id=d.id; return v; });
+    gotIpc=true; store.loaded=true; ready(); renderAll();
+  },cloudFail));
+}
+/* انقطاع أو رفض من السحابة → نعود للعمل محلياً دون فقد بيانات */
+function cloudFail(e){
+  if(store.mode!=="cloud") return;
+  detachDb(); store.db=null; setMode("local");
+  loadFallback();
+  setConn("error",errText(e));
+  renderAll();
+}
+function goLocal(reason){
+  detachDb(); store.db=null; store.backend=""; setMode("local");
+  localLoad();
+  setConn(reason?"error":"local",reason||"");
+  renderAll();
+}
+/* الدخول المجهول — مطلوب لقواعد الأمان التي تشترط request.auth != null */
+function fbSignIn(app){
+  if(typeof firebase==="undefined"||!firebase.auth) return Promise.resolve(null);
+  var auth; try{ auth=firebase.auth(app); }catch(e){ return Promise.resolve(null); }
+  if(auth.currentUser) return Promise.resolve(auth.currentUser);
+  return auth.signInAnonymously().then(function(r){ return r&&r.user; })["catch"](function(){ return null; });
+}
+function startFirebase(cfg,announce){
+  if(typeof firebase==="undefined"||!firebase.firestore){ goLocal("لم تُحمّل مكتبة Firebase — تحقّق من الاتصال بالإنترنت."); return false; }
+  setMode("pending"); setConn("pending",""); renderAll();
+  var app,fdb;
+  try{
+    app = firebase.apps.length ? firebase.app() : firebase.initializeApp(cfg);
+    fdb = firebase.firestore(app);
+  }catch(e){ goLocal(errText(e)); return false; }
+  store.app=app;
+  try{ fdb.settings({ignoreUndefinedProperties:true}); }catch(e){}
+  try{ fdb.enablePersistence({synchronizeTabs:true})["catch"](function(){}); }catch(e){}
+  fbSignIn(app)["catch"](function(){ return null; }).then(function(){
+    attachDb(fdb,"firebase");
+    if(announce) toast("تم الاتصال بمشروع "+(cfg.projectId||"Firebase")+".");
+  });
+  return true;
 }
 function initStore(){
   var hasClaude = typeof window!=="undefined" && window.claude && typeof window.claude.use==="function";
   if(hasClaude){
-    setMode("pending"); renderAll();
+    setMode("pending"); setConn("pending",""); renderAll();
     window.claude.use("db").then(function(db){
       if(!db){ goLocal(); return; }
-      attachDb(db);
-    })["catch"](goLocal);
+      attachDb(db,"claude");
+    })["catch"](function(){ goLocal(); });
     return;
   }
-  var hasFirebase = typeof firebase!=="undefined" && FIREBASE_CONFIG && FIREBASE_CONFIG.projectId;
-  if(hasFirebase){
-    setMode("pending"); renderAll();
-    try{
-      if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-      var fdb=firebase.firestore();
-      try{ fdb.settings({ignoreUndefinedProperties:true}); }catch(e){}
-      attachDb(fdb);
-    }catch(e){ goLocal(); }
-    return;
-  }
+  var cfg=fbConfig();
+  if(cfg){ startFirebase(cfg,false); return; }
   goLocal();
 }
-
+/* رفع مستخلصات هذا الجهاز إلى السحابة عند أول ربط */
+function uploadLocal(){
+  if(store.mode!=="cloud"||!store.db){ toast("لست متصلاً بالسحابة."); return; }
+  var recs=localIpcs().filter(function(r){ return r&&r.id&&!r.demo; });
+  if(!recs.length){ toast("لا توجد بيانات محلية للرفع."); return; }
+  if(!confirm("رفع "+recs.length+" مستخلص من هذا الجهاز إلى السحابة؟ سيُستبدل أي مستخلص يحمل الرقم نفسه.")) return;
+  var db=store.db, batch=db.batch();
+  recs.forEach(function(r){ batch.set(db.collection("ipcs").doc(String(r.id)),r); });
+  batch.commit().then(function(){
+    var c=readJSON(LS_CFG);
+    if(c&&Array.isArray(c.projects)&&Array.isArray(c.people)) db.doc("app/config").set(mergeConfig(store.config,c))["catch"](function(){});
+    toast("تم رفع "+recs.length+" مستخلص إلى السحابة.");
+  })["catch"](function(e){ toast("تعذّر الرفع: "+errText(e)); });
+}
+/* دمج المشاريع والأشخاص المحليين مع الموجودين في السحابة دون تكرار */
+function mergeConfig(cloud,local){
+  var projects=cloud.projects.slice(), people=cloud.people.slice();
+  (local.projects||[]).forEach(function(p){
+    if(p&&p.name&&!projects.some(function(q){return String(q.name).toLowerCase()===String(p.name).toLowerCase();})) projects.push(p);
+  });
+  (local.people||[]).forEach(function(n){
+    if(n&&!people.some(function(m){return String(m).toLowerCase()===String(n).toLowerCase();})) people.push(n);
+  });
+  return {projects:projects,people:people};
+}
 /* ------------------------------ بيانات العرض التجريبية ------------------------------ */
 function demoData(){
   function d(off){var x=new Date();x.setDate(x.getDate()-off);
@@ -984,7 +1145,32 @@ function showPage(p){
   $("tabEntry").setAttribute("aria-selected",String(p==="entry"));
   $("tabSummary").setAttribute("aria-selected",String(p==="summary"));
 }
+var CONN_MSG={
+  pending:"جارٍ الاتصال بقاعدة البيانات…",
+  cloud:"البيانات محفوظة في السحابة وتتحدّث لحظياً لدى كل من يفتح النظام.",
+  local:"البيانات محفوظة في هذا المتصفح فقط. أضف إعدادات Firebase لمشاركتها مع الفريق.",
+  error:"تعذّر الاتصال بالسحابة — يعمل النظام محلياً على هذا الجهاز الآن."
+};
+function renderConn(){
+  var s=store.conn.state, d=store.conn.detail;
+  var cls={pending:"wait",cloud:"on",local:"off",error:"bad"}[s]||"off";
+  var label=CONN_LABEL[s]||"";
+  $("connBtn").className="conn "+cls;
+  $("connText").textContent=label;
+  $("connBtn").title=d?label+" — "+d:label;
+  $("syncBadge").textContent=label;
+  var msg=$("syncMsg");
+  msg.textContent=d?CONN_MSG[s]+" ("+d+")":CONN_MSG[s];
+  msg.className="sync-msg"+(s==="error"?" bad":"");
+  $("btnFbForget").hidden=!fbFromStorage();
+  $("btnRetry").hidden=!(s==="error"&&fbConfig());
+  var n=localIpcs().length;
+  var canUpload=(s==="cloud"&&store.backend==="firebase"&&n>0);
+  $("btnUploadLocal").hidden=!canUpload;
+  if(canUpload)$("btnUploadLocal").textContent="رفع بيانات هذا الجهاز ("+n+") إلى السحابة";
+}
 function renderAll(){
+  renderConn();
   renderFormSelects();
   renderSummaryFilters();
   renderSaved();
@@ -1041,6 +1227,31 @@ function wire(){
   $("btnExcelIpc").addEventListener("click",exportExcelIpc);
   $("btnPdfIpc").addEventListener("click",exportPdfIpc);
   $("btnPrint").addEventListener("click",function(){window.print();});
+  $("connBtn").addEventListener("click",function(){
+    var d=$("syncSetup"); d.open=true;
+    $("syncCard").scrollIntoView({block:"nearest"});
+    $("fbCfg").focus();
+  });
+  $("btnFbConnect").addEventListener("click",function(){
+    var c=fbParse($("fbCfg").value);
+    if(!c){toast("تعذّر قراءة الإعدادات — الصق مقطع firebaseConfig كاملاً.");$("fbCfg").focus();return;}
+    if(!fbSave(c)){toast("تعذّر حفظ الإعدادات في هذا المتصفح.");return;}
+    $("fbCfg").value=JSON.stringify(c,null,2);
+    if(store.app){ toast("تم حفظ الإعدادات — جارٍ إعادة التحميل…"); setTimeout(function(){location.reload();},700); }
+    else startFirebase(c,true);
+  });
+  $("btnFbForget").addEventListener("click",function(){
+    if(!confirm("قطع الاتصال بالسحابة والعودة للتخزين المحلي على هذا الجهاز؟"))return;
+    fbForget(); toast("تم قطع الاتصال — جارٍ إعادة التحميل…");
+    setTimeout(function(){location.reload();},700);
+  });
+  $("btnRetry").addEventListener("click",function(){
+    var c=fbConfig();
+    if(!c){toast("لا توجد إعدادات Firebase محفوظة.");return;}
+    if(store.app){ toast("جارٍ إعادة التحميل…"); setTimeout(function(){location.reload();},500); }
+    else startFirebase(c,true);
+  });
+  $("btnUploadLocal").addEventListener("click",uploadLocal);
 }
 
 /* ------------------------------ البدء ------------------------------ */
@@ -1048,6 +1259,8 @@ $("fDate").value=todayISO();
 $("fStatus").textContent="";
 STATUSES.forEach(function(s){var o=el("option",null,s.label);o.value=s.key;$("fStatus").appendChild(o);});
 wire();
+var bootCfg=fbConfig();
+if(bootCfg)$("fbCfg").value=JSON.stringify(bootCfg,null,2);
 renderAll();
 initStore();
 })();
