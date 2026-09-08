@@ -23,16 +23,23 @@
 5. **أدخل الإعدادات** بإحدى طريقتين:
    - املأ ملف `firebase-config.js` في المستودع — يصلح للجميع عند نشر الصفحة.
    - أو من داخل النظام: بطاقة **المزامنة** ← إعدادات الاتصال ← الصق المقطع ← **اتصال** (يُحفظ في هذا المتصفح فقط ويتجاوز الملف).
-6. **انشر قواعد الأمان**:
-   ```bash
-   npm install -g firebase-tools
-   firebase login
-   firebase use --add            # اختر مشروعك
-   firebase deploy --only firestore:rules
-   ```
+6. **انشر قواعد الأمان** — من المتصفح، بلا تثبيت أي أداة:
+   Build ← Firestore Database ← تبويب **Rules** ← امسح المحتوى ← الصق محتوى ملف `firestore.rules` ← **Publish**.
 
 > مفاتيح `firebaseConfig` عامة بطبيعتها ويراها أي متصفح يفتح الصفحة — ليست أسراراً.
-> الحماية الفعلية تأتي من قواعد الأمان في `firestore.rules`، فلا تنشر الصفحة بقواعد مفتوحة.
+> الحماية الفعلية تأتي من قواعد الأمان، فلا تنشر الصفحة بقواعد مفتوحة.
+
+<details>
+<summary>بديل: نشر القواعد بسطر أوامر (اختياري، لمن يفضّله)</summary>
+
+```bash
+npm install -g firebase-tools
+firebase login
+firebase use --add            # اختر مشروعك
+firebase deploy --only firestore:rules
+```
+الإعداد جاهز في `firebase.json`. اللصق من وحدة التحكم يؤدي الغرض نفسه تماماً.
+</details>
 
 ## نقل البيانات المحلية إلى السحابة
 
@@ -49,8 +56,8 @@ ipcs/{id}           { id, project, company, ipcNo, updatedAt,
 
 ## النشر
 
-- **Firebase Hosting**: `firebase deploy --only hosting` (الإعداد جاهز في `firebase.json`).
-- **GitHub Pages** أو أي استضافة ملفات ثابتة: ارفع `index.html` و `firebase-config.js` كما هما.
+- **GitHub Pages** أو أي استضافة ملفات ثابتة: ارفع `index.html` و `firebase-config.js` كما هما — لا خطوة بناء ولا أدوات.
+- **Firebase Hosting** (اختياري): `firebase deploy --only hosting` بعد تثبيت `firebase-tools`.
 - **محلياً**: `python3 -m http.server` ثم افتح العنوان في المتصفح (فتح الملف مباشرة بـ `file://` يعطّل تحميل `firebase-config.js` في بعض المتصفحات).
 
 ## الملفات
@@ -59,6 +66,6 @@ ipcs/{id}           { id, project, company, ipcNo, updatedAt,
 |---|---|
 | `index.html` | التطبيق كاملاً — الواجهة والمنطق والتصدير |
 | `firebase-config.js` | مفاتيح مشروع Firebase (عامة) |
-| `firestore.rules` | قواعد أمان Firestore |
-| `firestore.indexes.json` | فهارس Firestore (لا يحتاج النظام فهارس مركّبة حالياً) |
-| `firebase.json` | إعداد النشر والقواعد |
+| `firestore.rules` | قواعد أمان Firestore — انسخ محتواه والصقه في تبويب Rules بوحدة التحكم |
+| `firestore.indexes.json` | فهارس Firestore (لا يحتاج النظام فهارس مركّبة حالياً) — يلزم فقط لمسار سطر الأوامر |
+| `firebase.json` | إعداد النشر والقواعد — يلزم فقط لمسار سطر الأوامر |
