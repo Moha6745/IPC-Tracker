@@ -1,0 +1,30 @@
+# ينشر الصفحة على Firebase Hosting مع كل دفعة إلى main.
+# يحتاج سرّاً واحداً في المستودع باسم FIREBASE_SERVICE_ACCOUNT — التفاصيل في README.
+name: نشر على Firebase Hosting
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: تأكد من وجود سرّ حساب الخدمة
+        run: |
+          if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" ]; then
+            echo "::error::السرّ FIREBASE_SERVICE_ACCOUNT غير موجود. أضفه من Settings ← Secrets and variables ← Actions."
+            exit 1
+          fi
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ipc-tracker-daa8e
+          channelId: live
