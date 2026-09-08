@@ -56,9 +56,26 @@ ipcs/{id}           { id, project, company, ipcNo, updatedAt,
 
 ## النشر
 
-- **GitHub Pages** أو أي استضافة ملفات ثابتة: ارفع `index.html` و `firebase-config.js` كما هما — لا خطوة بناء ولا أدوات.
-- **Firebase Hosting** (اختياري): `firebase deploy --only hosting` بعد تثبيت `firebase-tools`.
+- **GitHub Pages** — مفعّل على `main`، والرابط: <https://moha6745.github.io/IPC-Tracker/>
+- **Firebase Hosting** — ينشر تلقائياً مع كل دفعة إلى `main` عبر `.github/workflows/firebase-hosting.yml`،
+  والرابط: <https://ipc-tracker-daa8e.web.app> (وكذلك `ipc-tracker-daa8e.firebaseapp.com`).
+  يحتاج إعداداً لمرة واحدة، انظر أدناه.
+
 - **محلياً**: `python3 -m http.server` ثم افتح العنوان في المتصفح (فتح الملف مباشرة بـ `file://` يعطّل تحميل `firebase-config.js` في بعض المتصفحات).
+
+### إعداد نشر Firebase Hosting (مرة واحدة)
+
+النشر يتم من GitHub Actions، فلا حاجة لتثبيت `firebase-tools` على أي جهاز. يلزم سرّ واحد:
+
+1. **فعّل Hosting**: وحدة تحكم Firebase ← Build ← Hosting ← **Get started** ← تجاوز خطوات الـ CLI بـ Next حتى Continue to console.
+2. **أنشئ مفتاح حساب خدمة**: إعدادات المشروع (⚙) ← تبويب **Service accounts** ← **Generate new private key** ← يُنزَّل ملف JSON.
+3. **أضف السرّ في GitHub**: المستودع ← Settings ← Secrets and variables ← Actions ← **New repository secret**
+   - الاسم: `FIREBASE_SERVICE_ACCOUNT`
+   - القيمة: محتوى ملف الـ JSON كاملاً.
+4. شغّل المسار من تبويب **Actions** ← «نشر على Firebase Hosting» ← **Run workflow** (أو ادفع أي تعديل إلى `main`).
+
+> ملف الـ JSON مفتاح خاص حقيقي — لا تضعه في المستودع ولا ترسله في محادثة. مكانه أسرار GitHub فقط.
+> إن أردت حذفه لاحقاً: Google Cloud Console ← IAM ← Service accounts.
 
 ## الملفات
 
@@ -68,4 +85,6 @@ ipcs/{id}           { id, project, company, ipcNo, updatedAt,
 | `firebase-config.js` | مفاتيح مشروع Firebase (عامة) |
 | `firestore.rules` | قواعد أمان Firestore — انسخ محتواه والصقه في تبويب Rules بوحدة التحكم |
 | `firestore.indexes.json` | فهارس Firestore (لا يحتاج النظام فهارس مركّبة حالياً) — يلزم فقط لمسار سطر الأوامر |
-| `firebase.json` | إعداد النشر والقواعد — يلزم فقط لمسار سطر الأوامر |
+| `firebase.json` | إعداد استضافة Firebase وقواعد Firestore |
+| `.firebaserc` | ربط المستودع بمشروع `ipc-tracker-daa8e` |
+| `.github/workflows/firebase-hosting.yml` | نشر تلقائي على Firebase Hosting مع كل دفعة إلى `main` |
