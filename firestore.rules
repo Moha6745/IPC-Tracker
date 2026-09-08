@@ -1,0 +1,29 @@
+rules_version = '2';
+
+/* قواعد أمان Firestore لنظام تتبّع المستخلصات.
+   الوصول مقصور على من سجّل دخوله — النظام يستخدم «الدخول المجهول»،
+   لذا فعّل Authentication ← Sign-in method ← Anonymous في مشروع Firebase.
+   للنشر: firebase deploy --only firestore:rules */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // إعدادات مشتركة: قائمة المشاريع وقائمة الأشخاص
+    match /app/config {
+      allow read, write: if signedIn();
+    }
+
+    // المستخلصات ومراحلها
+    match /ipcs/{ipcId} {
+      allow read, write: if signedIn();
+    }
+
+    // أي مسار آخر مرفوض
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
