@@ -16,14 +16,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: تأكد من وجود سرّ حساب الخدمة
+      # غياب السرّ يعني أن الاستضافة لم تُعدّ بعد — تنبيه وتخطٍّ، لا فشل.
+      - name: تحقق من سرّ حساب الخدمة
+        id: check
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
-          if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" ]; then
-            echo "::error::السرّ FIREBASE_SERVICE_ACCOUNT غير موجود. أضفه من Settings ← Secrets and variables ← Actions."
-            exit 1
+          if [ -z "$SA" ]; then
+            echo "::warning::السرّ FIREBASE_SERVICE_ACCOUNT غير مضبوط — تُخطّي النشر على Firebase Hosting. أضفه من Settings ← Secrets and variables ← Actions."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - if: steps.check.outputs.ready == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ipc-tracker-daa8e
