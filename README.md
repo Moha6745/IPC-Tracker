@@ -74,6 +74,8 @@ ipcs/{id}           { id, project, company, ipcNo, updatedAt,
    - القيمة: محتوى ملف الـ JSON كاملاً.
 4. شغّل المسار من تبويب **Actions** ← «نشر على Firebase Hosting» ← **Run workflow** (أو ادفع أي تعديل إلى `main`).
 
+قبل إضافة السرّ يمرّ المسار بتنبيه ويتخطّى النشر بدل أن يفشل، فلا تظهر علامة حمراء على كل دفعة.
+
 > ملف الـ JSON مفتاح خاص حقيقي — لا تضعه في المستودع ولا ترسله في محادثة. مكانه أسرار GitHub فقط.
 > إن أردت حذفه لاحقاً: Google Cloud Console ← IAM ← Service accounts.
 
