@@ -62,7 +62,7 @@ h1,h2,h3,.ttl{font-family:"Cairo","IBM Plex Sans Arabic",system-ui,sans-serif;te
   padding:7px 14px;cursor:pointer}
 .tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
 .tabs button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,
-.saved-item:focus-visible,tr.row:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
+.saved-item:focus-visible,tr.ipc:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
 
 /* layout: sidebar on the right (first in RTL flow) */
 .layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start}
@@ -181,9 +181,9 @@ th,td{text-align:start;padding:10px 12px;border-bottom:1px solid var(--line-soft
 th{background:var(--surface-2);color:var(--ink-2);font-size:11.5px;font-weight:700;letter-spacing:.02em;
   text-transform:uppercase;position:sticky;top:0;z-index:1}
 tbody tr:last-child td{border-bottom:0}
-tr.row{cursor:pointer}
-tr.row:hover td{background:var(--surface-2)}
-tr.row[aria-expanded="true"] td{background:var(--accent-soft)}
+tr.ipc{cursor:pointer}
+tr.ipc:hover td{background:var(--surface-2)}
+tr.ipc[aria-expanded="true"] td{background:var(--accent-soft)}
 td .proj{font-weight:600}
 td .co{color:var(--ink-3);font-size:11.5px}
 tr.detail > td{background:var(--surface-2);padding:0}
@@ -246,9 +246,9 @@ tr.detail > td{background:var(--surface-2);padding:0}
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <div class="tabs" role="tablist">
-        <button role="tab" id="tabEntry" aria-selected="true">تسجيل حالة</button>
-        <button role="tab" id="tabSummary" aria-selected="false">ملخص المستخلصات</button>
-        <button role="tab" id="tabStats" aria-selected="false">التحليلات</button>
+        <button role="tab" id="tabEntry" aria-selected="true">التسجيل</button>
+        <button role="tab" id="tabSummary" aria-selected="false">الملخص</button>
+        <button role="tab" id="tabStats" aria-selected="false">التحليل</button>
       </div>
       <div class="conn-wrap">
         <button class="conn off" type="button" id="connBtn" aria-label="حالة الاتصال" aria-expanded="false"><i></i></button>
@@ -1042,7 +1042,7 @@ function renderSummary(){
   }
   recs.forEach(function(rec){
     var lv=lastEvent(rec),s=lv?st(lv.status):null;
-    var tr=el("tr","row");
+    var tr=el("tr","ipc");
     tr.setAttribute("tabindex","0");tr.setAttribute("role","button");
     tr.setAttribute("aria-expanded",String(ui.openId===rec.id));
     var t1=el("td");t1.appendChild(el("div","proj",rec.project));tr.appendChild(t1);
@@ -1433,8 +1433,8 @@ function showPage(p){
   $("pageEntry").hidden=(p!=="entry");
   $("pageSummary").hidden=(p!=="summary");
   $("pageStats").hidden=(p!=="stats");
-  $("sideCol").hidden=(p==="stats");
-  document.querySelector(".layout").classList.toggle("full",p==="stats");
+  $("sideCol").hidden=(p!=="entry");
+  document.querySelector(".layout").classList.toggle("full",p!=="entry");
   $("tabEntry").setAttribute("aria-selected",String(p==="entry"));
   $("tabSummary").setAttribute("aria-selected",String(p==="summary"));
   $("tabStats").setAttribute("aria-selected",String(p==="stats"));
