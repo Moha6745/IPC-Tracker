@@ -31,6 +31,7 @@ img{max-width:100%}
   --accent-soft:#E7F2EB;
   --accent-ink:#FFFFFF;
   --danger:#D4415C;
+  --ok:#16A34A;
   --danger-soft:#FBE7EB;
   --field:#FFFFFF;
   --shadow:0 1px 2px rgba(0,60,30,.05), 0 8px 24px -18px rgba(0,60,30,.35);
@@ -145,16 +146,20 @@ details.manage summary::before{content:"▾ ";color:var(--ink-3)}
 .rtn{font-size:11px;color:var(--s3-fg);font-weight:600}
 
 /* banner */
-.conn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-weight:600;font-size:12px;color:var(--ink-2);
-  background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:7px 13px;cursor:pointer;
-  transition:border-color .15s ease,color .15s ease}
-.conn:hover{border-color:var(--accent-2);color:var(--accent)}
-.conn i{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:none}
-.conn.on i{background:var(--accent)}
+.conn-wrap{position:relative;display:flex;align-items:center}
+.conn{appearance:none;-webkit-appearance:none;border:0;background:none;padding:7px;margin:0;
+  line-height:0;border-radius:50%;cursor:pointer}
+.conn i{display:block;width:11px;height:11px;border-radius:50%;background:var(--ink-3);
+  box-shadow:0 0 0 0 transparent;transition:box-shadow .15s ease,background .15s ease}
+.conn:hover i{box-shadow:0 0 0 4px var(--line-soft)}
+.conn.on i{background:var(--ok)}
 .conn.off i{background:var(--s2-fg)}
 .conn.bad i{background:var(--danger)}
 .conn.wait i{background:var(--s1-fg);animation:conn-pulse 1.2s ease-in-out infinite}
 @keyframes conn-pulse{50%{opacity:.25}}
+.conn-pop{position:absolute;inset-block-start:calc(100% + 10px);inset-inline-end:-4px;z-index:60;
+  width:min(300px,calc(100vw - 40px));background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:14px 15px;box-shadow:0 2px 6px rgba(0,60,30,.06),0 18px 40px -20px rgba(0,60,30,.45)}
 .sync-msg{color:var(--ink-3);font-size:12px;margin:0 0 10px;line-height:1.55}
 .sync-msg.bad{color:var(--danger)}
 .sync-cfg{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;direction:ltr;text-align:left;min-height:96px}
@@ -225,13 +230,31 @@ tr.detail > td{background:var(--surface-2);padding:0}
         <button role="tab" id="tabEntry" aria-selected="true">تسجيل حالة</button>
         <button role="tab" id="tabSummary" aria-selected="false">ملخص المستخلصات</button>
       </div>
-      <button class="conn off" type="button" id="connBtn" aria-label="حالة المزامنة"><i></i><span id="connText">—</span></button>
+      <div class="conn-wrap">
+        <button class="conn off" type="button" id="connBtn" aria-label="حالة الاتصال" aria-expanded="false"><i></i></button>
+        <div class="conn-pop" id="connPop" hidden>
+          <p class="sync-msg" id="syncMsg"></p>
+          <button class="btn small block" id="btnRetry" hidden>إعادة محاولة الاتصال</button>
+          <button class="btn small block" id="btnUploadLocal" hidden>رفع بيانات هذا الجهاز إلى السحابة</button>
+          <details class="manage" id="syncSetup">
+            <summary>إعدادات الاتصال</summary>
+            <div class="grid" style="margin-top:10px">
+              <div class="field">
+                <label for="fbCfg">إعدادات مشروع Firebase</label>
+                <textarea id="fbCfg" class="sync-cfg" rows="7" spellcheck="false"
+                  placeholder="const firebaseConfig = {&#10;  apiKey: &quot;...&quot;,&#10;  projectId: &quot;...&quot;,&#10;  ...&#10;};"></textarea>
+              </div>
+              <div class="actions">
+                <button class="btn primary small" id="btnFbConnect">اتصال</button>
+                <button class="btn small danger" id="btnFbForget" hidden>قطع الاتصال</button>
+              </div>
+              <p class="hint" style="margin:0">انسخ المقطع من: وحدة تحكم Firebase ← إعدادات المشروع ← تطبيقات الويب. هذه المفاتيح عامة وليست أسراراً؛ الحماية تكون بقواعد الأمان في ملف firestore.rules.</p>
+            </div>
+          </details>
+        </div>
+      </div>
     </div>
   </header>
-
-  <div id="demoBanner" class="banner" hidden>
-    <b>بيانات تجريبية</b><span>هذه أمثلة للعرض فقط — تختفي تلقائياً بمجرد حفظ أول مستخلص لك.</span>
-  </div>
 
   <div class="layout">
     <!-- ============ العمود الأيمن ============ -->
@@ -270,31 +293,6 @@ tr.detail > td{background:var(--surface-2);padding:0}
         <div class="chips" id="peopleChips"></div>
       </section>
 
-      <!-- ============ المزامنة السحابية ============ -->
-      <section class="card" id="syncCard">
-        <div class="head">
-          <h2 class="ttl">المزامنة <span class="en">(Firebase)</span></h2>
-          <span class="hint" id="syncBadge">—</span>
-        </div>
-        <p class="sync-msg" id="syncMsg"></p>
-        <button class="btn small block" id="btnRetry" hidden>إعادة محاولة الاتصال</button>
-        <button class="btn small block" id="btnUploadLocal" hidden>رفع بيانات هذا الجهاز إلى السحابة</button>
-        <details class="manage" id="syncSetup">
-          <summary>إعدادات الاتصال</summary>
-          <div class="grid" style="margin-top:10px">
-            <div class="field">
-              <label for="fbCfg">إعدادات مشروع Firebase</label>
-              <textarea id="fbCfg" class="sync-cfg" rows="7" spellcheck="false"
-                placeholder="const firebaseConfig = {&#10;  apiKey: &quot;...&quot;,&#10;  projectId: &quot;...&quot;,&#10;  ...&#10;};"></textarea>
-            </div>
-            <div class="actions">
-              <button class="btn primary small" id="btnFbConnect">اتصال</button>
-              <button class="btn small danger" id="btnFbForget" hidden>قطع الاتصال</button>
-            </div>
-            <p class="hint" style="margin:0">انسخ المقطع من: وحدة تحكم Firebase ← إعدادات المشروع ← تطبيقات الويب. هذه المفاتيح عامة وليست أسراراً؛ الحماية تكون بقواعد الأمان في ملف firestore.rules.</p>
-          </div>
-        </details>
-      </section>
     </aside>
 
     <!-- ============ المحتوى ============ -->
@@ -628,7 +626,7 @@ function initStore(){
 /* رفع مستخلصات هذا الجهاز إلى السحابة عند أول ربط */
 function uploadLocal(){
   if(store.mode!=="cloud"||!store.db){ toast("لست متصلاً بالسحابة."); return; }
-  var recs=localIpcs().filter(function(r){ return r&&r.id&&!r.demo; });
+  var recs=localIpcs().filter(function(r){ return r&&r.id; });
   if(!recs.length){ toast("لا توجد بيانات محلية للرفع."); return; }
   if(!confirm("رفع "+recs.length+" مستخلص من هذا الجهاز إلى السحابة؟ سيُستبدل أي مستخلص يحمل الرقم نفسه.")) return;
   var db=store.db, batch=db.batch();
@@ -650,40 +648,13 @@ function mergeConfig(cloud,local){
   });
   return {projects:projects,people:people};
 }
-/* ------------------------------ بيانات العرض التجريبية ------------------------------ */
-function demoData(){
-  function d(off){var x=new Date();x.setDate(x.getDate()-off);
-    return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");}
-  return [
-   {id:"demo1",demo:true,project:"PMCM2 WSP",company:"WSP",ipcNo:"20",events:[
-     {id:"a",status:"receive",date:d(21),person:"Mohammed",note:""},
-     {id:"b",status:"review",date:d(18),person:"Mohammed",note:""},
-     {id:"c",status:"returned",round:1,date:d(12),person:"Adwaa",note:"ملاحظات على كميات الأعمال المدنية"},
-     {id:"e",status:"review",date:d(4),person:"Mohammed",note:""}]},
-   {id:"demo2",demo:true,project:"Almabani-Thumama",company:"Almabani",ipcNo:"8",events:[
-     {id:"a",status:"receive",date:d(30),person:"Faisal",note:""},
-     {id:"b",status:"review",date:d(27),person:"Faisal",note:""},
-     {id:"c",status:"mawared",date:d(15),person:"Othman",note:""},
-     {id:"d",status:"etimad",date:d(9),person:"Othman",note:"تم الاعتماد النهائي"}]},
-   {id:"demo3",demo:true,project:"RTCC-TR",company:"RTCC-TR",ipcNo:"6",events:[
-     {id:"a",status:"receive",date:d(6),person:"Adwaa",note:""},
-     {id:"b",status:"review",date:d(2),person:"Adwaa",note:""}]},
-   {id:"demo4",demo:true,project:"Yuksel - TMER",company:"Yuksel",ipcNo:"1",events:[
-     {id:"a",status:"receive",date:d(11),person:"Othman",note:""},
-     {id:"b",status:"returned",round:1,date:d(7),person:"Othman",note:"نقص في مرفقات المستخلص"},
-     {id:"c",status:"returned",round:2,date:d(1),person:"Adwaa",note:""}]}
-  ];
-}
-function viewRecords(){ return store.ipcs.length ? store.ipcs : demoData(); }
-function isDemoView(){ return store.ipcs.length===0; }
-
 /* ------------------------------ الحالة الحالية للواجهة ------------------------------ */
 var ui={page:"entry",currentId:null,openId:null,filterStatus:"",dirtyIpc:false};
 
 /* ------------------------------ العمود الأيمن ------------------------------ */
 function renderSaved(){
   var box=$("savedList"); box.textContent="";
-  var recs=viewRecords().slice().sort(function(a,b){
+  var recs=store.ipcs.slice().sort(function(a,b){
     var la=lastEvent(a),lb=lastEvent(b);
     return (lb?lb.date:"")<(la?la.date:"")?-1:1;});
   $("savedCount").textContent=String(recs.length);
@@ -748,8 +719,7 @@ function renderFormSelects(){
   if(keepPer&&store.config.people.indexOf(keepPer)>=0)perSel.value=keepPer;
 }
 function currentRecord(){
-  if(ui.currentId){var byId=store.ipcs.filter(function(r){return r.id===ui.currentId;})[0];if(byId)return byId;
-    var d=demoData().filter(function(r){return r.id===ui.currentId;})[0];if(d)return d;}
+  if(ui.currentId){var byId=store.ipcs.filter(function(r){return r.id===ui.currentId;})[0];if(byId)return byId;}
   var proj=$("fProject").value,ipc=$("fIpc").value.trim();
   if(!proj||!ipc)return null;
   return store.ipcs.filter(function(r){return r.project===proj&&String(r.ipcNo)===ipc;})[0]||null;
@@ -775,7 +745,7 @@ function renderEntryState(){
   if(rec){
     var lv=lastEvent(rec);
     stateEl.textContent="مستخلص موجود · "+(rec.events||[]).length+" مرحلة · آخر حالة: "+(lv?st(lv.status).label:"—");
-    save.textContent="إضافة مرحلة"; del.hidden=!!rec.demo;
+    save.textContent="إضافة مرحلة"; del.hidden=false;
     $("btnExcelIpc").hidden=false; $("btnPdfIpc").hidden=false;
   }else{
     stateEl.textContent="مستخلص جديد";
@@ -790,7 +760,7 @@ function renderHistory(rec){
   if(!rec||!(rec.events||[]).length){card.hidden=true;body.textContent="";return;}
   card.hidden=false;
   var evs=sortedEvents(rec);
-  $("historyMeta").textContent=rec.project+" · IPC "+rec.ipcNo+(rec.demo?" (تجريبي)":"");
+  $("historyMeta").textContent=rec.project+" · IPC "+rec.ipcNo;
   body.textContent="";
   evs.forEach(function(e,i){
     var s=st(e.status);
@@ -801,22 +771,20 @@ function renderHistory(rec){
     tr.appendChild(el("td",null,e.person||"—"));
     tr.appendChild(el("td",null,e.note||"—"));
     var td6=el("td");
-    if(!rec.demo){
-      var x=el("button","iconbtn","×");x.type="button";x.title="حذف هذه المرحلة";
-      x.addEventListener("click",function(){
-        if(!confirm("حذف مرحلة \""+s.label+"\" بتاريخ "+fmtDate(e.date)+"؟"))return;
-        rec.events=(rec.events||[]).filter(function(q){return q.id!==e.id;});
-        if(!rec.events.length){deleteRecord(rec.id);ui.currentId=null;toast("تم حذف المستخلص بالكامل.");}
-        else{saveRecord(rec);toast("تم حذف المرحلة.");}
-      });
-      td6.appendChild(x);
-    }
+    var x=el("button","iconbtn","×");x.type="button";x.title="حذف هذه المرحلة";
+    x.addEventListener("click",function(){
+      if(!confirm("حذف مرحلة \""+s.label+"\" بتاريخ "+fmtDate(e.date)+"؟"))return;
+      rec.events=(rec.events||[]).filter(function(q){return q.id!==e.id;});
+      if(!rec.events.length){deleteRecord(rec.id);ui.currentId=null;toast("تم حذف المستخلص بالكامل.");}
+      else{saveRecord(rec);toast("تم حذف المرحلة.");}
+    });
+    td6.appendChild(x);
     tr.appendChild(td6);
     body.appendChild(tr);
   });
 }
 function loadRecord(id){
-  var rec=viewRecords().filter(function(r){return r.id===id;})[0];
+  var rec=store.ipcs.filter(function(r){return r.id===id;})[0];
   if(!rec)return;
   ui.currentId=id;
   showPage("entry");
@@ -875,7 +843,7 @@ function trackEl(rec){
 function filteredRecords(){
   var q=$("qSearch").value.trim().toLowerCase();
   var fp=$("qProject").value, fper=$("qPerson").value, fs=$("qStatus").value||ui.filterStatus;
-  return viewRecords().filter(function(r){
+  return store.ipcs.filter(function(r){
     var lv=lastEvent(r);
     if(fp&&r.project!==fp)return false;
     if(fper&&(!lv||lv.person!==fper))return false;
@@ -891,7 +859,7 @@ function filteredRecords(){
 }
 function renderStats(){
   var box=$("stats");box.textContent="";
-  var recs=viewRecords();
+  var recs=store.ipcs;
   var defs=[{key:"",label:"إجمالي المستخلصات",count:recs.length}];
   STATUSES.forEach(function(s){
     var n=recs.filter(function(r){var lv=lastEvent(r);return lv&&lv.status===s.key;}).length;
@@ -976,14 +944,12 @@ function detailRow(rec){
   var open=el("button","btn small","فتح في صفحة التسجيل");open.type="button";
   open.addEventListener("click",function(ev){ev.stopPropagation();loadRecord(rec.id);});
   act.appendChild(open);
-  if(!rec.demo){
-    var del=el("button","btn small danger","حذف المستخلص");del.type="button";
-    del.addEventListener("click",function(ev){ev.stopPropagation();
-      if(!confirm("حذف مستخلص "+rec.project+" — IPC "+rec.ipcNo+" وكل مراحله؟"))return;
-      if(ui.currentId===rec.id)ui.currentId=null;
-      ui.openId=null;deleteRecord(rec.id);toast("تم حذف المستخلص.");});
-    act.appendChild(del);
-  }
+  var del=el("button","btn small danger","حذف المستخلص");del.type="button";
+  del.addEventListener("click",function(ev){ev.stopPropagation();
+    if(!confirm("حذف مستخلص "+rec.project+" — IPC "+rec.ipcNo+" وكل مراحله؟"))return;
+    if(ui.currentId===rec.id)ui.currentId=null;
+    ui.openId=null;deleteRecord(rec.id);toast("تم حذف المستخلص.");});
+  act.appendChild(del);
   wrap.appendChild(act);
   td.appendChild(wrap);tr.appendChild(td);
   tr.addEventListener("click",function(ev){ev.stopPropagation();});
@@ -1151,14 +1117,19 @@ var CONN_MSG={
   local:"البيانات محفوظة في هذا المتصفح فقط. أضف إعدادات Firebase لمشاركتها مع الفريق.",
   error:"تعذّر الاتصال بالسحابة — يعمل النظام محلياً على هذا الجهاز الآن."
 };
+/* لوحة حالة الاتصال تحت النقطة */
+function setPop(open){
+  $("connPop").hidden=!open;
+  $("connBtn").setAttribute("aria-expanded",String(!!open));
+  if(!open) $("syncSetup").open=false;
+}
 function renderConn(){
   var s=store.conn.state, d=store.conn.detail;
   var cls={pending:"wait",cloud:"on",local:"off",error:"bad"}[s]||"off";
   var label=CONN_LABEL[s]||"";
   $("connBtn").className="conn "+cls;
-  $("connText").textContent=label;
   $("connBtn").title=d?label+" — "+d:label;
-  $("syncBadge").textContent=label;
+  $("connBtn").setAttribute("aria-label",$("connBtn").title);
   var msg=$("syncMsg");
   msg.textContent=d?CONN_MSG[s]+" ("+d+")":CONN_MSG[s];
   msg.className="sync-msg"+(s==="error"?" bad":"");
@@ -1179,7 +1150,6 @@ function renderAll(){
   renderEntryState();
   renderStats();
   renderSummary();
-  $("demoBanner").hidden=!isDemoView();
 }
 function wire(){
   $("tabEntry").addEventListener("click",function(){showPage("entry");});
@@ -1191,7 +1161,7 @@ function wire(){
   $("btnClear").addEventListener("click",clearForm);
   $("btnNew").addEventListener("click",function(){showPage("entry");clearForm();$("fProject").focus();});
   $("btnDeleteIpc").addEventListener("click",function(){
-    var rec=currentRecord();if(!rec||rec.demo)return;
+    var rec=currentRecord();if(!rec)return;
     if(!confirm("حذف مستخلص "+rec.project+" — IPC "+rec.ipcNo+" وكل مراحله؟"))return;
     deleteRecord(rec.id);ui.currentId=null;clearForm();toast("تم حذف المستخلص.");
   });
@@ -1227,10 +1197,14 @@ function wire(){
   $("btnExcelIpc").addEventListener("click",exportExcelIpc);
   $("btnPdfIpc").addEventListener("click",exportPdfIpc);
   $("btnPrint").addEventListener("click",function(){window.print();});
-  $("connBtn").addEventListener("click",function(){
-    var d=$("syncSetup"); d.open=true;
-    $("syncCard").scrollIntoView({block:"nearest"});
-    $("fbCfg").focus();
+  $("connBtn").addEventListener("click",function(e){
+    e.stopPropagation();
+    setPop($("connPop").hidden);
+  });
+  $("connPop").addEventListener("click",function(e){ e.stopPropagation(); });
+  document.addEventListener("click",function(){ setPop(false); });
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Escape"&&!$("connPop").hidden){ setPop(false); $("connBtn").focus(); }
   });
   $("btnFbConnect").addEventListener("click",function(){
     var c=fbParse($("fbCfg").value);
