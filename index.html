@@ -32,6 +32,8 @@ img{max-width:100%}
   --accent-ink:#FFFFFF;
   --danger:#D4415C;
   --ok:#16A34A;
+  --c-mqawil:#006C35;      /* مقاول — سلسلة ١ */
+  --c-istishari:#EB6834;   /* استشاري — سلسلة ٢ */
   --danger-soft:#FBE7EB;
   --field:#FFFFFF;
   --shadow:0 1px 2px rgba(0,60,30,.05), 0 8px 24px -18px rgba(0,60,30,.35);
@@ -64,6 +66,7 @@ h1,h2,h3,.ttl{font-family:"Cairo","IBM Plex Sans Arabic",system-ui,sans-serif;te
 
 /* layout: sidebar on the right (first in RTL flow) */
 .layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start}
+.layout.full{grid-template-columns:minmax(0,1fr)}
 @media (max-width:960px){.layout{grid-template-columns:1fr}}
 
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
@@ -205,6 +208,22 @@ tr.detail > td{background:var(--surface-2);padding:0}
 .stat[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
 .stat .v{font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:500;color:var(--ink);display:block}
 .stat .k{font-size:11.5px;color:var(--ink-3)}
+/* ---------- التحليلات ---------- */
+.bars{display:flex;flex-direction:column;gap:11px}
+.bar-row{display:grid;grid-template-columns:minmax(96px,150px) minmax(0,1fr) 64px;gap:12px;align-items:center}
+.bar-row .lbl{font-size:12.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{position:relative;height:12px;border-radius:4px;background:var(--surface-2)}
+.bar-fill{position:absolute;inset-block:0;inset-inline-start:0;border-start-end-radius:4px;border-end-end-radius:4px;
+  background:var(--accent);min-width:2px}
+.bar-row .val{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;color:var(--ink);
+  font-variant-numeric:tabular-nums;direction:ltr;text-align:start}
+.cmp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px 26px}
+.cmp-group{min-width:0}
+.cmp-group h3{font-size:12.5px;font-weight:600;color:var(--ink-2);margin:0 0 8px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2)}
+.legend i{width:10px;height:10px;border-radius:3px;flex:none}
+.an-note{color:var(--ink-3);font-size:12px;margin:10px 0 0;line-height:1.6}
 .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
 .filters .field{min-width:150px}
 .filters .field.wide{flex:1;min-width:200px}
@@ -229,6 +248,7 @@ tr.detail > td{background:var(--surface-2);padding:0}
       <div class="tabs" role="tablist">
         <button role="tab" id="tabEntry" aria-selected="true">تسجيل حالة</button>
         <button role="tab" id="tabSummary" aria-selected="false">ملخص المستخلصات</button>
+        <button role="tab" id="tabStats" aria-selected="false">التحليلات</button>
       </div>
       <div class="conn-wrap">
         <button class="conn off" type="button" id="connBtn" aria-label="حالة الاتصال" aria-expanded="false"><i></i></button>
@@ -258,7 +278,7 @@ tr.detail > td{background:var(--surface-2);padding:0}
 
   <div class="layout">
     <!-- ============ العمود الأيمن ============ -->
-    <aside class="side">
+    <aside class="side" id="sideCol">
       <section class="card">
         <div class="head">
           <h2 class="ttl">المستخلصات المحفوظة <span class="en">(Saved IPCs)</span></h2>
@@ -377,6 +397,79 @@ tr.detail > td{background:var(--surface-2);padding:0}
           </div>
         </section>
       </div>
+
+      <!-- صفحة 3 -->
+      <div id="pageStats" hidden>
+        <section class="card">
+          <div class="head">
+            <h2 class="ttl">لوحة التحليلات <span class="en">(Analytics)</span></h2>
+            <span class="hint" id="anMeta"></span>
+          </div>
+          <div class="filters">
+            <div class="field"><label for="aType">نوع الجهة</label>
+              <select id="aType"><option value="">الكل</option><option value="مقاول">مقاول</option><option value="استشاري">استشاري</option></select></div>
+            <div class="field"><label for="aPerson">المسؤول</label><select id="aPerson"></select></div>
+            <div class="field"><label for="aPeriod">الفترة</label>
+              <select id="aPeriod"><option value="0">كل الوقت</option><option value="30">آخر 30 يوماً</option><option value="90">آخر 90 يوماً</option><option value="365">آخر سنة</option></select></div>
+            <span class="spacer"></span>
+            <button class="btn small" id="btnPrintStats">طباعة / PDF</button>
+          </div>
+          <div class="stats" id="anKpis"></div>
+          <p class="an-note" id="anEmpty" hidden>لا توجد مستخلصات مطابقة للمُرشِّحات الحالية.</p>
+        </section>
+
+        <section class="card" id="anStagesCard">
+          <div class="head">
+            <h2 class="ttl">متوسط الأيام في كل مرحلة</h2>
+            <span class="hint">من تسجيل المرحلة إلى تسجيل التي تليها</span>
+          </div>
+          <div class="bars" id="anStages"></div>
+        </section>
+
+        <section class="card" id="anCompareCard">
+          <div class="head">
+            <h2 class="ttl">مقاول مقابل استشاري</h2>
+            <span class="hint">كل مقياس بمقياسه الخاص</span>
+          </div>
+          <div class="legend">
+            <span><i style="background:var(--c-mqawil)"></i>مقاول</span>
+            <span><i style="background:var(--c-istishari)"></i>استشاري</span>
+          </div>
+          <div class="cmp-grid" id="anCompare"></div>
+          <div class="tablewrap" style="margin-top:14px">
+            <table>
+              <thead><tr><th>المقياس</th><th>مقاول</th><th>استشاري</th></tr></thead>
+              <tbody id="anCompareBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <h2 class="ttl">أداء المسؤولين</h2>
+            <span class="hint">متوسط الأيام بين المرحلة السابقة وتسجيله للمرحلة</span>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>المسؤول</th><th>عدد المراحل المسجّلة</th><th>متوسط أيام الاستجابة</th><th>أطول استجابة</th></tr></thead>
+              <tbody id="anPeopleBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <h2 class="ttl">الأطول انتظاراً الآن</h2>
+            <span class="hint">مستخلصات لم تُعتمد بعد</span>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>المشروع</th><th>المستخلص</th><th>الحالة الحالية</th><th>المسؤول</th><th>أيام الانتظار</th></tr></thead>
+              <tbody id="anStuckBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </main>
   </div>
 </div>
@@ -408,9 +501,29 @@ function sortedPeople(){return store.config.people.slice().sort(function(a,b){
   return String(a).localeCompare(String(b),"ar",{sensitivity:"base"});});}
 function sortedProjects(){return store.config.projects.slice().sort(function(a,b){
   return String(a.name).localeCompare(String(b.name),"ar",{sensitivity:"base",numeric:true});});}
+function projType(name){
+  var p=store.config.projects.filter(function(q){return q.name===name;})[0];
+  return (p&&p.type)||PROJECT_TYPES[name]||"";
+}
 function st(k){for(var i=0;i<STATUSES.length;i++){if(STATUSES[i].key===k)return STATUSES[i];}return STATUSES[0];}
 
+/* تصنيف الجهة لكل مشروع — يُحفظ في البيانات ولا يُعرض في الواجهة،
+   ويُستعمل مُرشِّحاً في صفحة التحليلات فقط. */
+var PROJECT_TYPES={
+  "BHP":"استشاري",              "Advanced Co":"مقاول",        "SAPAC-TRQR":"مقاول",
+  "Parsons":"استشاري",          "SAPAC - SSRR":"مقاول",       "Yuksel":"مقاول",
+  "PMCM1 WSP":"استشاري",        "RTCC IC JV":"مقاول",         "AAIC CHEC JV":"مقاول",
+  "PMCM2 WSP":"استشاري",        "Almabani-KAFD":"مقاول",      "PMCM4 IDS":"استشاري",
+  "KSxABSR Shade":"مقاول",      "Almabani-Thumama":"مقاول",   "PMCM3 IDS":"استشاري",
+  "Almabani-IASR":"مقاول",      "Almabani-PTAA1":"مقاول",     "Ayuni IMR":"مقاول",
+  "PMCM7 IDOM":"استشاري",       "PMCM6 DAR":"استشاري",        "Bin laden-Dirab":"مقاول",
+  "RTCC-TR":"مقاول",            "SAJCO-CI G2":"مقاول",        "Freyssinet - OBA":"مقاول",
+  "PMCM5 - Dar Alriyadh":"استشاري","SAPAC -Jeddah R":"مقاول", "Yuksel - TMER":"مقاول"
+};
+var TYPES=["مقاول","استشاري"];
+
 var SEED_PROJECTS=[
+ ["BHP","BHP"],
  ["Advanced Co","Advanced Co"],["SAPAC-TRQR","SAPAC"],["Parsons","Parsons"],["SAPAC - SSRR","SAPAC"],
  ["Yuksel","Yuksel"],["PMCM1 WSP","WSP"],["RTCC IC JV","RTCC IC JV"],["AAIC CHEC JV","AAIC CHEC JV"],
  ["PMCM2 WSP","WSP"],["Almabani-KAFD","Almabani"],["PMCM4 IDS","IDS"],["KSxABSR Shade","KSxABSR Shade"],
@@ -418,7 +531,7 @@ var SEED_PROJECTS=[
  ["Ayuni IMR","Ayuni"],["PMCM7 IDOM","IDOM"],["PMCM6 DAR","DAR"],["Bin laden-Dirab","Bin laden-Dirab"],
  ["RTCC-TR","RTCC-TR"],["SAJCO-CI G2","SAJCO-CI G2"],["Freyssinet - OBA","Freyssinet - OBA"],
  ["PMCM5 - Dar Alriyadh","Dar Alriyadh"],["SAPAC -Jeddah R","SAPAC"],["Yuksel - TMER","Yuksel"]
-].map(function(p){return {name:p[0],company:p[1],type:"مقاول"};});
+].map(function(p){return {name:p[0],company:p[1],type:PROJECT_TYPES[p[0]]||"مقاول"};});
 var SEED_PEOPLE=["Adwaa","Faisal","Mohammed","Othman"];
 
 /* ------------------------------ أدوات ------------------------------ */
@@ -442,12 +555,27 @@ var LS_CFG="ipctracker.config.v1",       /* إعدادات الوضع المحل
     LS_MIR="ipctracker.cloudcache.v1",   /* نسخة احتياطية من السحابة للعمل دون اتصال */
     LS_FB ="ipctracker.firebase.v1";     /* إعدادات مشروع Firebase التي أدخلها المستخدم */
 
+var CONFIG_REV=2;
+/* إعدادات محفوظة من إصدار سابق: صحّح تصنيف الجهة وأضف ما نقص من المشاريع.
+   يُرجع نسخة جديدة عند الحاجة، وnull إن كانت محدّثة أصلاً. */
+function migrateConfig(cfg){
+  if(!cfg||!Array.isArray(cfg.projects)||!Array.isArray(cfg.people))return null;
+  if((cfg.rev||0)>=CONFIG_REV)return null;
+  var projects=cfg.projects.map(function(p){
+    var t=PROJECT_TYPES[p.name];
+    return (t&&p.type!==t)?{name:p.name,company:p.company,type:t}:p;
+  });
+  SEED_PROJECTS.forEach(function(sp){
+    if(!projects.some(function(q){return q.name===sp.name;}))projects.push(sp);
+  });
+  return {projects:projects,people:cfg.people,rev:CONFIG_REV};
+}
 var store={
   mode:"pending",            /* pending | local | cloud */
   backend:"",                /* claude | firebase */
   db:null, app:null, unsub:[],
   conn:{state:"pending",detail:""},
-  config:{projects:SEED_PROJECTS.slice(),people:SEED_PEOPLE.slice()},
+  config:{projects:SEED_PROJECTS.slice(),people:SEED_PEOPLE.slice(),rev:CONFIG_REV},
   ipcs:[],
   loaded:false
 };
@@ -457,11 +585,16 @@ function writeJSON(key,val){ try{ localStorage.setItem(key,JSON.stringify(val));
 function localIpcs(){ var r=readJSON(LS_IPC); return Array.isArray(r)?r:[]; }
 
 function localLoad(){
+  var migrated=false;
   var c=readJSON(LS_CFG);
-  if(c&&Array.isArray(c.projects)&&Array.isArray(c.people)) store.config=c;
+  if(c&&Array.isArray(c.projects)&&Array.isArray(c.people)){
+    var up=migrateConfig(c);
+    store.config=up||c; migrated=!!up;
+  }
   var r=readJSON(LS_IPC);
   if(Array.isArray(r)) store.ipcs=r;
   store.loaded=true;
+  if(migrated) localSaveAll();   /* ثبّت الترقية حتى لا تتكرر كل مرة */
 }
 function localSaveAll(){
   writeJSON(LS_CFG,store.config);
@@ -475,7 +608,7 @@ function mirrorCloud(){
 function loadFallback(){
   var m=readJSON(LS_MIR), r=localIpcs();
   if(m&&Array.isArray(m.ipcs)&&(m.ipcs.length||!r.length)){
-    if(m.config&&Array.isArray(m.config.projects)&&Array.isArray(m.config.people)) store.config=m.config;
+    if(m.config&&Array.isArray(m.config.projects)&&Array.isArray(m.config.people)) store.config=migrateConfig(m.config)||m.config;
     store.ipcs=m.ipcs; store.loaded=true; return;
   }
   localLoad();
@@ -560,7 +693,11 @@ function attachDb(db,backend){
   store.unsub.push(db.doc("app/config").onSnapshot(function(snap){
     if(snap.exists){
       var d=snap.data();
-      if(d&&Array.isArray(d.projects)&&Array.isArray(d.people)) store.config={projects:d.projects,people:d.people};
+      if(d&&Array.isArray(d.projects)&&Array.isArray(d.people)){
+        store.config={projects:d.projects,people:d.people,rev:d.rev||0};
+        var up=migrateConfig(store.config);
+        if(up){ store.config=up; db.doc("app/config").set(up)["catch"](function(){}); }
+      }
     } else {
       db.doc("app/config").set(store.config)["catch"](function(){});
     }
@@ -646,7 +783,7 @@ function mergeConfig(cloud,local){
   (local.people||[]).forEach(function(n){
     if(n&&!people.some(function(m){return String(m).toLowerCase()===String(n).toLowerCase();})) people.push(n);
   });
-  return {projects:projects,people:people};
+  return {projects:projects,people:people,rev:CONFIG_REV};
 }
 /* ------------------------------ الحالة الحالية للواجهة ------------------------------ */
 var ui={page:"entry",currentId:null,openId:null,filterStatus:"",dirtyIpc:false};
@@ -887,6 +1024,10 @@ function renderSummaryFilters(){
   qs.textContent="";var o2=el("option",null,"الكل");o2.value="";qs.appendChild(o2);
   sortedPeople().forEach(function(n){var x=el("option",null,n);x.value=n;qs.appendChild(x);});
   qs.value=k2||"";
+  var ap=$("aPerson"),k3=ap.value;
+  ap.textContent="";var o4=el("option",null,"الكل");o4.value="";ap.appendChild(o4);
+  sortedPeople().forEach(function(n){var x=el("option",null,n);x.value=n;ap.appendChild(x);});
+  ap.value=k3||"";
   var qst=$("qStatus");
   if(!qst.options.length){
     var o3=el("option",null,"الكل");o3.value="";qst.appendChild(o3);
@@ -954,6 +1095,189 @@ function detailRow(rec){
   td.appendChild(wrap);tr.appendChild(td);
   tr.addEventListener("click",function(ev){ev.stopPropagation();});
   return tr;
+}
+
+/* ------------------------------ التحليلات ------------------------------ */
+/* المقاييس كلها مشتقّة من تواريخ المراحل المسجّلة، بلا حقول إضافية. */
+function firstOf(evs,key){for(var i=0;i<evs.length;i++){if(evs[i].status===key)return evs[i];}return null;}
+
+/* ملخّص مستخلص واحد: الزمن الكلي، أيام الانتظار، عدد الترجيعات */
+function recStats(rec){
+  var evs=sortedEvents(rec); if(!evs.length)return null;
+  var first=evs[0], last=evs[evs.length-1], appr=firstOf(evs,"etimad");
+  return {
+    rec:rec, evs:evs, type:projType(rec.project),
+    start:first.date, last:last, approved:!!appr,
+    total: appr?daysBetween(first.date,appr.date):null,
+    waiting: appr?null:daysBetween(last.date,todayISO()),
+    returns: evs.filter(function(e){return e.status==="returned";}).length
+  };
+}
+/* مدة كل مرحلة = من تسجيلها إلى تسجيل التي تليها */
+function stageSpans(evs){
+  var out=[];
+  for(var i=0;i<evs.length-1;i++){
+    var d=daysBetween(evs[i].date,evs[i+1].date);
+    if(!isNaN(d)&&d>=0)out.push({status:evs[i].status,days:d});
+  }
+  return out;
+}
+function avg(a){if(!a.length)return null;var t=0;for(var i=0;i<a.length;i++)t+=a[i];return t/a.length;}
+function num(v,d){ return v==null?"—":(Math.round(v*10)/10)+(d||""); }
+
+/* المستخلصات بعد تطبيق مُرشِّحات صفحة التحليلات */
+function anRecords(){
+  var t=$("aType").value, per=$("aPerson").value, days=parseInt($("aPeriod").value,10)||0;
+  var cutoff=null;
+  if(days){var x=new Date();x.setDate(x.getDate()-days);
+    cutoff=x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");}
+  return store.ipcs.map(recStats).filter(function(m){
+    if(!m)return false;
+    if(t&&m.type!==t)return false;
+    if(per&&!m.evs.some(function(e){return e.person===per;}))return false;
+    if(cutoff&&m.last.date<cutoff)return false;
+    return true;
+  });
+}
+/* مجموعة مقاييس لأي قائمة مستخلصات */
+function anAggregate(ms){
+  var done=ms.filter(function(m){return m.approved;});
+  return {
+    count:ms.length,
+    approved:done.length,
+    open:ms.length-done.length,
+    avgTotal:avg(done.map(function(m){return m.total;})),
+    avgWaiting:avg(ms.filter(function(m){return !m.approved;}).map(function(m){return m.waiting;})),
+    avgReturns:avg(ms.map(function(m){return m.returns;})),
+    returnedShare: ms.length?(ms.filter(function(m){return m.returns>0;}).length/ms.length*100):null
+  };
+}
+/* صف شريط: تسمية + شريط + قيمة مباشرة (القيمة مكتوبة، فاللون ليس وحده) */
+function barRow(label,value,max,color,text){
+  var row=el("div","bar-row");
+  row.appendChild(el("div","lbl",label));
+  var track=el("div","bar-track");
+  var fill=el("div","bar-fill");
+  fill.style.width=(max>0?Math.max(1,(value/max)*100):0)+"%";
+  if(color)fill.style.background=color;
+  track.appendChild(fill);
+  track.title=label+": "+text;
+  row.appendChild(track);
+  row.appendChild(el("div","val",text));
+  return row;
+}
+function renderAnalytics(){
+  if(ui.page!=="stats")return;
+  var ms=anRecords(), g=anAggregate(ms);
+  $("anMeta").textContent=ms.length?(ms.length+" مستخلص ضمن المُرشِّحات"):"";
+  $("anEmpty").hidden=!!ms.length;
+
+  /* --- بطاقات الأرقام --- */
+  var box=$("anKpis");box.textContent="";
+  [["إجمالي المستخلصات",String(g.count)],
+   ["معتمدة",String(g.approved)],
+   ["جارية",String(g.open)],
+   ["متوسط الزمن الكلي",num(g.avgTotal," يوم")],
+   ["متوسط انتظار الجارية",num(g.avgWaiting," يوم")],
+   ["نسبة المرتجعة",g.returnedShare==null?"—":Math.round(g.returnedShare)+"%"]
+  ].forEach(function(d){
+    var c=el("div","stat");
+    c.appendChild(el("span","v",d[1]));
+    c.appendChild(el("span","k",d[0]));
+    box.appendChild(c);
+  });
+
+  /* --- متوسط الأيام في كل مرحلة (هوية واحدة، ترتيب حسب المسار) --- */
+  var spans={};
+  ms.forEach(function(m){stageSpans(m.evs).forEach(function(sp){
+    (spans[sp.status]=spans[sp.status]||[]).push(sp.days);});});
+  var rows=STATUSES.filter(function(x){return spans[x.key]&&spans[x.key].length;})
+    .map(function(x){return {label:x.label,v:avg(spans[x.key]),n:spans[x.key].length};});
+  var sbox=$("anStages");sbox.textContent="";
+  if(!rows.length){ sbox.appendChild(el("p","an-note","تحتاج مرحلتين على الأقل في مستخلص واحد لحساب المدد.")); }
+  else{
+    var mx=Math.max.apply(null,rows.map(function(r){return r.v;}));
+    rows.forEach(function(r){ sbox.appendChild(barRow(r.label,r.v,mx,null,num(r.v)+" يوم")); });
+    sbox.appendChild(el("p","an-note","العدد بين قوسين في التلميح هو عدد الانتقالات المقيسة، لا عدد المستخلصات."));
+  }
+
+  /* --- مقاول مقابل استشاري --- */
+  var showCmp = !$("aType").value;
+  $("anCompareCard").hidden=!showCmp;
+  if(showCmp){
+    var A=anAggregate(ms.filter(function(m){return m.type==="مقاول";}));
+    var B=anAggregate(ms.filter(function(m){return m.type==="استشاري";}));
+    var metrics=[
+      {k:"متوسط الزمن الكلي (يوم)", a:A.avgTotal, b:B.avgTotal, s:" يوم"},
+      {k:"متوسط انتظار الجارية (يوم)", a:A.avgWaiting, b:B.avgWaiting, s:" يوم"},
+      {k:"متوسط عدد الترجيعات", a:A.avgReturns, b:B.avgReturns, s:""}
+    ];
+    var cb=$("anCompare");cb.textContent="";
+    metrics.forEach(function(m){
+      var grp=el("div","cmp-group");
+      var h=el("h3",null,m.k);grp.appendChild(h);
+      var bars=el("div","bars");
+      var mx2=Math.max(m.a||0,m.b||0);
+      bars.appendChild(barRow("مقاول",m.a||0,mx2,"var(--c-mqawil)",num(m.a,m.s)));
+      bars.appendChild(barRow("استشاري",m.b||0,mx2,"var(--c-istishari)",num(m.b,m.s)));
+      grp.appendChild(bars);cb.appendChild(grp);
+    });
+    var tb=$("anCompareBody");tb.textContent="";
+    [["عدد المستخلصات",String(A.count),String(B.count)],
+     ["معتمدة",String(A.approved),String(B.approved)],
+     ["جارية",String(A.open),String(B.open)],
+     ["متوسط الزمن الكلي",num(A.avgTotal," يوم"),num(B.avgTotal," يوم")],
+     ["متوسط انتظار الجارية",num(A.avgWaiting," يوم"),num(B.avgWaiting," يوم")],
+     ["متوسط عدد الترجيعات",num(A.avgReturns),num(B.avgReturns)],
+     ["نسبة المرتجعة",A.returnedShare==null?"—":Math.round(A.returnedShare)+"%",
+                      B.returnedShare==null?"—":Math.round(B.returnedShare)+"%"]
+    ].forEach(function(r){
+      var tr=el("tr");
+      tr.appendChild(el("td",null,r[0]));
+      tr.appendChild(el("td","num",r[1]));
+      tr.appendChild(el("td","num",r[2]));
+      tb.appendChild(tr);
+    });
+  }
+
+  /* --- أداء المسؤولين: أيام بين المرحلة السابقة وتسجيله للمرحلة --- */
+  var byPerson={};
+  ms.forEach(function(m){
+    for(var i=1;i<m.evs.length;i++){
+      var d=daysBetween(m.evs[i-1].date,m.evs[i].date);
+      if(isNaN(d)||d<0)continue;
+      var who=m.evs[i].person||"—";
+      (byPerson[who]=byPerson[who]||[]).push(d);
+    }
+  });
+  var pb=$("anPeopleBody");pb.textContent="";
+  var names=Object.keys(byPerson).sort(function(a,b){return avg(byPerson[b])-avg(byPerson[a]);});
+  if(!names.length){
+    var tr0=el("tr"),td0=el("td","empty","لا توجد بيانات كافية.");td0.colSpan=4;tr0.appendChild(td0);pb.appendChild(tr0);
+  } else names.forEach(function(n){
+    var a=byPerson[n],tr=el("tr");
+    tr.appendChild(el("td",null,n));
+    tr.appendChild(el("td","num",String(a.length)));
+    tr.appendChild(el("td","num",num(avg(a))+" يوم"));
+    tr.appendChild(el("td","num",Math.max.apply(null,a)+" يوم"));
+    pb.appendChild(tr);
+  });
+
+  /* --- الأطول انتظاراً --- */
+  var stuck=ms.filter(function(m){return !m.approved;})
+    .sort(function(a,b){return b.waiting-a.waiting;}).slice(0,8);
+  var kb=$("anStuckBody");kb.textContent="";
+  if(!stuck.length){
+    var tr1=el("tr"),td1=el("td","empty","لا توجد مستخلصات جارية.");td1.colSpan=5;tr1.appendChild(td1);kb.appendChild(tr1);
+  } else stuck.forEach(function(m){
+    var sInfo=st(m.last.status),tr=el("tr");
+    tr.appendChild(el("td",null,m.rec.project));
+    tr.appendChild(el("td","num",m.rec.ipcNo));
+    var td=el("td");td.appendChild(el("span","pill "+sInfo.cls,sInfo.label));tr.appendChild(td);
+    tr.appendChild(el("td",null,m.last.person||"—"));
+    tr.appendChild(el("td","num",m.waiting+" يوم"));
+    kb.appendChild(tr);
+  });
 }
 
 /* ------------------------------ التصدير ------------------------------ */
@@ -1108,8 +1432,12 @@ function showPage(p){
   ui.page=p;
   $("pageEntry").hidden=(p!=="entry");
   $("pageSummary").hidden=(p!=="summary");
+  $("pageStats").hidden=(p!=="stats");
+  $("sideCol").hidden=(p==="stats");
+  document.querySelector(".layout").classList.toggle("full",p==="stats");
   $("tabEntry").setAttribute("aria-selected",String(p==="entry"));
   $("tabSummary").setAttribute("aria-selected",String(p==="summary"));
+  $("tabStats").setAttribute("aria-selected",String(p==="stats"));
 }
 var CONN_MSG={
   pending:"جارٍ الاتصال بقاعدة البيانات…",
@@ -1150,10 +1478,15 @@ function renderAll(){
   renderEntryState();
   renderStats();
   renderSummary();
+  renderAnalytics();
 }
 function wire(){
   $("tabEntry").addEventListener("click",function(){showPage("entry");});
   $("tabSummary").addEventListener("click",function(){showPage("summary");renderStats();renderSummary();});
+  $("tabStats").addEventListener("click",function(){showPage("stats");renderAnalytics();});
+  ["aType","aPerson","aPeriod"].forEach(function(id){
+    $(id).addEventListener("change",renderAnalytics);});
+  $("btnPrintStats").addEventListener("click",function(){window.print();});
   $("fProject").addEventListener("change",function(){syncCompany();ui.currentId=null;renderEntryState();renderSaved();});
   $("fIpc").addEventListener("input",function(){ui.currentId=null;renderEntryState();renderSaved();});
   $("fStatus").addEventListener("change",syncRoundField);
