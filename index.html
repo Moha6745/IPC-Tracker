@@ -50,6 +50,8 @@ body{background:var(--ground);color:var(--ink);
 .app{max-width:1240px;margin:0 auto;padding:18px 20px 60px}
 h1,h2,h3,.ttl{font-family:"Cairo","IBM Plex Sans Arabic",system-ui,sans-serif;text-wrap:balance;margin:0}
 .num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+/* داخل الجداول تحاذي الأرقام نهاية الخلية لتقع تحت رأس العمود العربي */
+th.num,td.num{text-align:end}
 
 /* header */
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
@@ -416,6 +418,21 @@ tr.detail > td{background:var(--surface-2);padding:0}
           </div>
           <div class="stats" id="anKpis"></div>
           <p class="an-note" id="anEmpty" hidden>لا توجد مستخلصات مطابقة للمُرشِّحات الحالية.</p>
+          <details class="manage">
+            <summary>ماذا يعني كل رقم؟</summary>
+            <div class="tablewrap" style="margin-top:10px">
+              <table>
+                <thead><tr><th>المقياس</th><th>تعريفه</th></tr></thead>
+                <tbody>
+                  <tr><td>متوسط مدة الإنجاز</td><td>للمستخلصات المعتمدة فقط: عدد الأيام من أول مرحلة مسجّلة إلى «تسجيل باعتماد».</td></tr>
+                  <tr><td>متوسط الركود الحالي</td><td>للمستخلصات الجارية فقط: عدد الأيام منذ آخر مرحلة سُجِّلت حتى اليوم — أي كم صار لها واقفة مكانها.</td></tr>
+                  <tr><td>نسبة المرتجعة</td><td>حصة المستخلصات التي مرّت بمرحلة «رجعت للاستشاري للتعديل» مرة واحدة على الأقل.</td></tr>
+                  <tr><td>متوسط الأيام في كل مرحلة</td><td>من تاريخ تسجيل المرحلة إلى تاريخ تسجيل المرحلة التي تليها.</td></tr>
+                  <tr><td>متوسط أيام الاستجابة</td><td>للشخص: عدد الأيام بين المرحلة السابقة وتسجيله هو للمرحلة التالية.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
         </section>
 
         <section class="card" id="anStagesCard">
@@ -1109,7 +1126,7 @@ function recStats(rec){
     rec:rec, evs:evs, type:projType(rec.project),
     start:first.date, last:last, approved:!!appr,
     total: appr?daysBetween(first.date,appr.date):null,
-    waiting: appr?null:daysBetween(last.date,todayISO()),
+    waiting: appr?null:Math.max(0,daysBetween(last.date,todayISO())),
     returns: evs.filter(function(e){return e.status==="returned";}).length
   };
 }
@@ -1124,6 +1141,14 @@ function stageSpans(evs){
 }
 function avg(a){if(!a.length)return null;var t=0;for(var i=0;i<a.length;i++)t+=a[i];return t/a.length;}
 function num(v,d){ return v==null?"—":(Math.round(v*10)/10)+(d||""); }
+/* خلية أيام: الرقم وحده بخط الأرقام، والوحدة نص عربي — حتى لا ينقلب ترتيبها */
+function daysCell(v){
+  var td=el("td");
+  if(v==null){ td.textContent="—"; return td; }
+  td.appendChild(el("span","num",String(Math.round(v*10)/10)));
+  td.appendChild(document.createTextNode(" يوم"));
+  return td;
+}
 
 /* المستخلصات بعد تطبيق مُرشِّحات صفحة التحليلات */
 function anRecords(){
@@ -1174,14 +1199,15 @@ function renderAnalytics(){
 
   /* --- بطاقات الأرقام --- */
   var box=$("anKpis");box.textContent="";
-  [["إجمالي المستخلصات",String(g.count)],
-   ["معتمدة",String(g.approved)],
-   ["جارية",String(g.open)],
-   ["متوسط الزمن الكلي",num(g.avgTotal," يوم")],
-   ["متوسط انتظار الجارية",num(g.avgWaiting," يوم")],
-   ["نسبة المرتجعة",g.returnedShare==null?"—":Math.round(g.returnedShare)+"%"]
+  [["إجمالي المستخلصات",String(g.count),"عدد المستخلصات ضمن المُرشِّحات الحالية"],
+   ["معتمدة",String(g.approved),"وصلت إلى مرحلة «تسجيل باعتماد»"],
+   ["جارية",String(g.open),"لم تصل إلى الاعتماد بعد"],
+   ["متوسط مدة الإنجاز",num(g.avgTotal," يوم"),"للمعتمدة فقط: الأيام من أول مرحلة إلى الاعتماد"],
+   ["متوسط الركود الحالي",num(g.avgWaiting," يوم"),"للجارية فقط: الأيام منذ آخر مرحلة سُجِّلت حتى اليوم"],
+   ["نسبة المرتجعة",g.returnedShare==null?"—":Math.round(g.returnedShare)+"%","حصة المستخلصات التي رجعت للاستشاري مرة على الأقل"]
   ].forEach(function(d){
     var c=el("div","stat");
+    c.title=d[2];
     c.appendChild(el("span","v",d[1]));
     c.appendChild(el("span","k",d[0]));
     box.appendChild(c);
@@ -1208,8 +1234,8 @@ function renderAnalytics(){
     var A=anAggregate(ms.filter(function(m){return m.type==="مقاول";}));
     var B=anAggregate(ms.filter(function(m){return m.type==="استشاري";}));
     var metrics=[
-      {k:"متوسط الزمن الكلي (يوم)", a:A.avgTotal, b:B.avgTotal, s:" يوم"},
-      {k:"متوسط انتظار الجارية (يوم)", a:A.avgWaiting, b:B.avgWaiting, s:" يوم"},
+      {k:"متوسط مدة الإنجاز (يوم)", a:A.avgTotal, b:B.avgTotal, s:" يوم"},
+      {k:"متوسط الركود الحالي (يوم)", a:A.avgWaiting, b:B.avgWaiting, s:" يوم"},
       {k:"متوسط عدد الترجيعات", a:A.avgReturns, b:B.avgReturns, s:""}
     ];
     var cb=$("anCompare");cb.textContent="";
@@ -1226,16 +1252,16 @@ function renderAnalytics(){
     [["عدد المستخلصات",String(A.count),String(B.count)],
      ["معتمدة",String(A.approved),String(B.approved)],
      ["جارية",String(A.open),String(B.open)],
-     ["متوسط الزمن الكلي",num(A.avgTotal," يوم"),num(B.avgTotal," يوم")],
-     ["متوسط انتظار الجارية",num(A.avgWaiting," يوم"),num(B.avgWaiting," يوم")],
+     ["متوسط مدة الإنجاز",A.avgTotal,B.avgTotal,"days"],
+     ["متوسط الركود الحالي",A.avgWaiting,B.avgWaiting,"days"],
      ["متوسط عدد الترجيعات",num(A.avgReturns),num(B.avgReturns)],
      ["نسبة المرتجعة",A.returnedShare==null?"—":Math.round(A.returnedShare)+"%",
                       B.returnedShare==null?"—":Math.round(B.returnedShare)+"%"]
     ].forEach(function(r){
       var tr=el("tr");
       tr.appendChild(el("td",null,r[0]));
-      tr.appendChild(el("td","num",r[1]));
-      tr.appendChild(el("td","num",r[2]));
+      if(r[3]==="days"){ tr.appendChild(daysCell(r[1])); tr.appendChild(daysCell(r[2])); }
+      else { tr.appendChild(el("td","num",r[1])); tr.appendChild(el("td","num",r[2])); }
       tb.appendChild(tr);
     });
   }
@@ -1258,8 +1284,8 @@ function renderAnalytics(){
     var a=byPerson[n],tr=el("tr");
     tr.appendChild(el("td",null,n));
     tr.appendChild(el("td","num",String(a.length)));
-    tr.appendChild(el("td","num",num(avg(a))+" يوم"));
-    tr.appendChild(el("td","num",Math.max.apply(null,a)+" يوم"));
+    tr.appendChild(daysCell(avg(a)));
+    tr.appendChild(daysCell(Math.max.apply(null,a)));
     pb.appendChild(tr);
   });
 
@@ -1275,7 +1301,7 @@ function renderAnalytics(){
     tr.appendChild(el("td","num",m.rec.ipcNo));
     var td=el("td");td.appendChild(el("span","pill "+sInfo.cls,sInfo.label));tr.appendChild(td);
     tr.appendChild(el("td",null,m.last.person||"—"));
-    tr.appendChild(el("td","num",m.waiting+" يوم"));
+    tr.appendChild(daysCell(m.waiting));
     kb.appendChild(tr);
   });
 }
