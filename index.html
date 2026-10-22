@@ -253,11 +253,13 @@ tr.detail > td{background:var(--surface-2);padding:0}
 .filters .field{min-width:150px}
 .filters .field.wide{flex:1;min-width:200px}
 .filters .spacer{margin-inline-start:auto}
-/* خانتا نوع الجهة: اضغط للتحديد، واضغط ثانية للعودة إلى الكل */
+/* خانتا نوع الجهة بجانب البحث: بلا تسمية، وبخط غامق تمييزاً لها عن المُرشِّحات المنسدلة.
+   اضغط للتحديد، واضغط ثانية للعودة إلى الكل. */
 .seg{display:flex;gap:6px}
-.seg-btn{font:inherit;font-weight:600;font-size:13px;color:var(--ink-2);background:var(--surface);
-  border:1px solid var(--line);border-radius:8px;padding:9px 16px;cursor:pointer;white-space:nowrap}
-.seg-btn:hover{border-color:var(--accent-2);color:var(--accent)}
+.filters .seg-field{flex:0 0 auto;min-width:0}
+.seg-btn{font:inherit;font-weight:700;font-size:13.5px;color:var(--ink);background:var(--surface-2);
+  border:1px solid var(--line);border-radius:8px;padding:9px 18px;cursor:pointer;white-space:nowrap}
+.seg-btn:hover{border-color:var(--accent-2);color:var(--accent);background:var(--accent-soft)}
 .seg-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 /* مجموعات أشرطة المقارنة فوق الجدول */
 .cmp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px 26px}
@@ -433,17 +435,17 @@ tr.mine td{background:var(--accent-soft)}
             <h2 class="ttl">ملخص حالة المستخلصات <span class="en">(Status Summary)</span></h2>
           </div>
           <div class="filters">
+            <div class="field seg-field">
+              <div class="seg" id="aType" role="group" aria-label="نوع الجهة">
+                <button type="button" class="seg-btn" data-v="مقاول" aria-pressed="false">مقاول</button>
+                <button type="button" class="seg-btn" data-v="استشاري" aria-pressed="false">استشاري</button>
+              </div></div>
             <div class="field wide"><label for="qSearch">بحث</label><input id="qSearch"></div>
             <div class="field"><label for="qProject">المشروع</label><select id="qProject"></select></div>
             <div class="field"><label for="qPerson">المسؤول</label><select id="qPerson"></select></div>
             <div class="field"><label for="qStatus">المرحلة</label><select id="qStatus"></select></div>
-            <div class="field"><label id="aTypeLbl">نوع الجهة</label>
-              <div class="seg" id="aType" role="group" aria-labelledby="aTypeLbl">
-                <button type="button" class="seg-btn" data-v="مقاول" aria-pressed="false">مقاول</button>
-                <button type="button" class="seg-btn" data-v="استشاري" aria-pressed="false">استشاري</button>
-              </div></div>
           </div>
-          <div class="actions" style="margin-bottom:14px">
+          <div class="actions" style="margin-bottom:14px;justify-content:flex-end">
             <button class="btn small" id="btnExcel">تصدير Excel</button>
             <button class="btn small" id="btnPdf">تصدير PDF</button>
             <button class="btn small" id="btnPrint">طباعة</button>
