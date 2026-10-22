@@ -53,6 +53,10 @@ h1,h2,h3,.ttl{font-family:"Cairo","IBM Plex Sans Arabic",system-ui,sans-serif;te
 .num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 /* داخل الجداول تحاذي الأرقام نهاية الخلية لتقع تحت رأس العمود العربي */
 th.num,td.num{text-align:end}
+/* رأس عمود عربي فوق أرقام: المحاذاة وحدها، بلا خط الأرقام الذي يفصل الحروف */
+th.end{text-align:end}
+/* تسميات مراحل صفحة المسؤول أطول (تحمل عدد المرات) فتحتاج خانة أوسع */
+#pnStages .bar-row{grid-template-columns:minmax(96px,200px) minmax(0,1fr) 64px}
 
 /* header */
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;
@@ -223,10 +227,7 @@ tr.detail > td{background:var(--surface-2);padding:0}
 .bar-fill{position:absolute;inset-block:0;inset-inline-start:0;border-start-end-radius:4px;border-end-end-radius:4px;
   background:var(--accent);min-width:2px}
 .bar-row .val{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;color:var(--ink);
-  font-variant-numeric:tabular-nums;direction:ltr;text-align:start}
-.cmp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px 26px}
-.cmp-group{min-width:0}
-.cmp-group h3{font-size:12.5px;font-weight:600;color:var(--ink-2);margin:0 0 8px}
+  font-variant-numeric:tabular-nums;direction:ltr;text-align:start;white-space:nowrap}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px}
 .legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2)}
 .legend i{width:10px;height:10px;border-radius:3px;flex:none}
@@ -234,6 +235,40 @@ tr.detail > td{background:var(--surface-2);padding:0}
 .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
 .filters .field{min-width:150px}
 .filters .field.wide{flex:1;min-width:200px}
+.filters .spacer{margin-inline-start:auto}
+/* زر الرسم في جدول المقارنة */
+.cmpbtn{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:7px;
+  padding:4px 10px;font:inherit;font-size:11.5px;font-weight:600;line-height:1.5;cursor:pointer;white-space:nowrap}
+.cmpbtn:hover{border-color:var(--accent);color:var(--accent)}
+.cmpbtn[aria-expanded="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chartbox{padding:14px 16px}
+.chartbox .cmp-ttl{font-size:12.5px;font-weight:600;color:var(--ink-2);margin:0 0 10px}
+/* صفحة المسؤول */
+.ipc-block{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.ipc-block:last-child{margin-bottom:0}
+.ipc-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.ipc-head .t{font-family:"Cairo","IBM Plex Sans Arabic",sans-serif;font-weight:700;font-size:13.5px;color:var(--ink)}
+.ipc-head .co{color:var(--ink-3);font-size:11.5px}
+.ipc-meta{color:var(--ink-3);font-size:11.5px;margin:0 0 10px}
+.tag{display:inline-flex;align-items:center;background:var(--surface-2);border:1px solid var(--line-soft);
+  border-radius:20px;padding:2px 9px;font-size:11.5px;color:var(--ink-2);white-space:nowrap}
+.tag.now{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+tr.mine td{background:var(--accent-soft)}
+/* التأخر عن حد المرحلة */
+.late-tag{display:inline-flex;align-items:center;background:var(--danger-soft);color:var(--danger);
+  border-radius:20px;padding:1px 8px;font-size:11px;font-weight:600;white-space:nowrap;margin-inline-start:6px}
+td.warn{background:var(--danger-soft)}
+.retn{color:var(--s3-fg);font-weight:600;white-space:nowrap}
+/* حدود التأخر */
+.limits{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 12px;margin-top:10px}
+.limits .field > label{font-size:11.5px}
+.limits input{text-align:center}
+/* التقاط صفحة التحليل إلى PDF: html2canvas لا يتعامل مع النص المتباعد
+   ولا الرؤوس اللاصقة، فتُحيَّد أثناء التصدير فقط. */
+.pdfshot .filters,.pdfshot .cmpbtn,.pdfshot .actions,.pdfshot .ui-only{display:none !important}
+.pdfshot th,.pdfshot td{letter-spacing:normal;text-transform:none;position:static}
+.pdfshot .tablewrap{overflow:visible}
+.pdfshot table{min-width:0}
 
 @media print{
   .side,.tabs,.filters,.actions,.banner,.iconbtn{display:none !important}
@@ -396,7 +431,7 @@ tr.detail > td{background:var(--surface-2);padding:0}
           <div class="tablewrap">
             <table>
               <thead><tr>
-                <th>المشروع</th><th>الشركة</th><th>المستخلص</th><th>المسار</th>
+                <th>المشروع</th><th>الشركة</th><th>المستخلص</th><th>المسار</th><th>الترجيع</th>
                 <th>الحالة الحالية</th><th>التاريخ</th><th>المسؤول</th><th>منذ</th>
               </tr></thead>
               <tbody id="summaryBody"></tbody>
@@ -416,10 +451,8 @@ tr.detail > td{background:var(--surface-2);padding:0}
             <div class="field"><label for="aType">نوع الجهة</label>
               <select id="aType"><option value="">الكل</option><option value="مقاول">مقاول</option><option value="استشاري">استشاري</option></select></div>
             <div class="field"><label for="aPerson">المسؤول</label><select id="aPerson"></select></div>
-            <div class="field"><label for="aPeriod">الفترة</label>
-              <select id="aPeriod"><option value="0">كل الوقت</option><option value="30">آخر 30 يوماً</option><option value="90">آخر 90 يوماً</option><option value="365">آخر سنة</option></select></div>
             <span class="spacer"></span>
-            <button class="btn small" id="btnPrintStats">طباعة / PDF</button>
+            <button class="btn small" id="btnPdfStats">تصدير PDF</button>
           </div>
           <div class="stats" id="anKpis"></div>
           <p class="an-note" id="anEmpty" hidden>لا توجد مستخلصات مطابقة للمُرشِّحات الحالية.</p>
@@ -430,13 +463,19 @@ tr.detail > td{background:var(--surface-2);padding:0}
                 <thead><tr><th>المقياس</th><th>تعريفه</th></tr></thead>
                 <tbody>
                   <tr><td>متوسط مدة الإنجاز</td><td>للمستخلصات المكتملة فقط: عدد الأيام من أول مرحلة مسجّلة إلى مرحلة «اكتمل».</td></tr>
-                  <tr><td>متوسط الركود الحالي</td><td>للمستخلصات غير المكتملة: عدد الأيام منذ آخر مرحلة سُجِّلت حتى اليوم — أي كم صار لها واقفة مكانها. ومنها ما سُجِّل باعتماد وينتظر الاكتمال.</td></tr>
                   <tr><td>نسبة المرتجعة</td><td>حصة المستخلصات التي مرّت بمرحلة «رجعت للاستشاري للتعديل» مرة واحدة على الأقل.</td></tr>
                   <tr><td>متوسط الأيام في كل مرحلة</td><td>من تاريخ تسجيل المرحلة إلى تاريخ تسجيل المرحلة التي تليها. و«اكتمل» مرحلة ختامية تقفل دورة المستخلص، فلا تُحسب لها مدة.</td></tr>
-                  <tr><td>متوسط أيام الاستجابة</td><td>للشخص: عدد الأيام بين المرحلة السابقة وتسجيله هو للمرحلة التالية.</td></tr>
+                  <tr><td>مرات الترجيع لكل 10 مستخلصات</td><td>إجمالي مرات «رجعت للاستشاري للتعديل» ÷ عدد المستخلصات × 10 — ليُقرأ عدداً مفهوماً بدل كسر صغير.</td></tr>
+                  <tr><td>متأخرة الآن</td><td>مستخلصات جارية بقيت في مرحلتها الحالية أكثر من حدّ تلك المرحلة. الحدود تُضبط من «حدود التأخر لكل مرحلة» أدناه.</td></tr>
+                  <tr><td>متوسط التنفيذ</td><td>للشخص: عدد الأيام بين تسجيل المرحلة السابقة وتسجيله هو للمرحلة — أي المدة التي بقي فيها العمل في يده. ولا تُحسب له أول مرحلة في المستخلص إذ لا مرحلة قبلها.</td></tr>
                 </tbody>
               </table>
             </div>
+          </details>
+          <details class="manage">
+            <summary>حدود التأخر لكل مرحلة</summary>
+            <div class="limits" id="anLimits"></div>
+            <p class="hint" style="margin:10px 0 0">إن بقي المستخلص في مرحلة أكثر من حدّها، ظهر «متأخر» بالأحمر في الملخص وفي «الأطول انتظاراً»، وحُسب في بطاقة «متأخرة الآن». الحدود تُحفظ مع إعدادات النظام ويراها الفريق كله.</p>
           </details>
         </section>
 
@@ -448,33 +487,42 @@ tr.detail > td{background:var(--surface-2);padding:0}
           <div class="bars" id="anStages"></div>
         </section>
 
+        <section class="card" id="anTrendCard">
+          <div class="head">
+            <h2 class="ttl">الاتجاه شهراً بشهر</h2>
+            <span class="hint">متوسط مدة الإنجاز حسب شهر الاكتمال</span>
+          </div>
+          <div class="bars" id="anTrend"></div>
+        </section>
+
         <section class="card" id="anCompareCard">
           <div class="head">
             <h2 class="ttl">مقاول مقابل استشاري</h2>
-            <span class="hint">كل مقياس بمقياسه الخاص</span>
+            <span class="hint ui-only">اضغط «رسم» في أي صف لعرضه بيانياً</span>
           </div>
           <div class="legend">
             <span><i style="background:var(--c-mqawil)"></i>مقاول</span>
             <span><i style="background:var(--c-istishari)"></i>استشاري</span>
           </div>
-          <div class="cmp-grid" id="anCompare"></div>
-          <div class="tablewrap" style="margin-top:14px">
+          <div class="tablewrap">
             <table>
-              <thead><tr><th>المقياس</th><th>مقاول</th><th>استشاري</th></tr></thead>
+              <thead><tr><th>المقياس</th><th class="end">مقاول</th><th class="end">استشاري</th><th>الرسم</th></tr></thead>
               <tbody id="anCompareBody"></tbody>
             </table>
           </div>
         </section>
 
-        <section class="card">
+        <section class="card" id="anProjectsCard">
           <div class="head">
-            <h2 class="ttl">أداء المسؤولين</h2>
-            <span class="hint">متوسط الأيام بين المرحلة السابقة وتسجيله للمرحلة</span>
+            <h2 class="ttl">المشاريع مقابل بعضها</h2>
+            <span class="hint">مرتّبة بالأبطأ إنجازاً</span>
           </div>
           <div class="tablewrap">
             <table>
-              <thead><tr><th>المسؤول</th><th>عدد المراحل المسجّلة</th><th>متوسط أيام الاستجابة</th><th>أطول استجابة</th></tr></thead>
-              <tbody id="anPeopleBody"></tbody>
+              <thead><tr><th>المشروع</th><th>الشركة</th><th>الجهة</th><th class="end">المستخلصات</th>
+                <th class="end">مكتملة</th><th class="end">متوسط الإنجاز</th><th class="end">الترجيعات</th>
+                <th class="end">متأخرة الآن</th></tr></thead>
+              <tbody id="anProjectsBody"></tbody>
             </table>
           </div>
         </section>
@@ -490,6 +538,64 @@ tr.detail > td{background:var(--surface-2);padding:0}
               <tbody id="anStuckBody"></tbody>
             </table>
           </div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <h2 class="ttl">أداء المسؤولين</h2>
+            <span class="hint ui-only">اضغط على أي مسؤول لعرض مستخلصاته</span>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>المسؤول</th><th class="end">عنده الآن</th><th class="end">أقدم انتظار</th>
+                <th class="end">متوسط التنفيذ</th><th class="end">مراحل سجّلها</th></tr></thead>
+              <tbody id="anPeopleBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card" id="anMatrixCard">
+          <div class="head">
+            <h2 class="ttl">متوسط التنفيذ لكل مسؤول في كل مرحلة</h2>
+            <span class="hint">بالأيام — الخلايا الحمراء تجاوزت حدّ المرحلة</span>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr id="anMatrixHead"></tr></thead>
+              <tbody id="anMatrixBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- صفحة 4: مسؤول واحد (تفريع من صفحة التحليل) -->
+      <div id="pagePerson" hidden>
+        <section class="card">
+          <div class="head">
+            <h2 class="ttl" id="pnTitle">مستخلصات المسؤول</h2>
+            <div class="actions">
+              <button class="btn small" id="btnPnPdf">تصدير PDF</button>
+              <button class="btn small" id="btnPnBack">رجوع إلى التحليل ←</button>
+            </div>
+          </div>
+          <div class="stats" id="pnKpis"></div>
+          <p class="an-note" id="pnEmpty" hidden>لا توجد مراحل سجّلها هذا المسؤول ضمن المُرشِّحات الحالية.</p>
+        </section>
+
+        <section class="card" id="pnStagesCard">
+          <div class="head">
+            <h2 class="ttl">متوسط تنفيذه لكل مرحلة</h2>
+            <span class="hint">المراحل التي سجّلها هو فقط</span>
+          </div>
+          <div class="bars" id="pnStages"></div>
+        </section>
+
+        <section class="card" id="pnIpcsCard">
+          <div class="head">
+            <h2 class="ttl">مستخلصاته وتفاصيلها</h2>
+            <span class="hint" id="pnCount"></span>
+          </div>
+          <div id="pnIpcs"></div>
         </section>
       </div>
     </main>
@@ -520,6 +626,8 @@ var STATUSES=[
   {key:"done",    label:"اكتمل",                    short:"اكتمل",     step:5, cls:"s6"}
 ];
 var NEXT_STATUS={receive:"review",review:"mawared",returned:"review",mawared:"etimad",etimad:"done",done:"done"};
+/* حد الأيام المقبول في كل مرحلة قبل أن يُعدّ المستخلص متأخراً — يعدّله المستخدم */
+var DEFAULT_LIMITS={receive:3,review:7,returned:5,mawared:5,etimad:7};
 var STEPS=5;
 function sortedPeople(){return store.config.people.slice().sort(function(a,b){
   return String(a).localeCompare(String(b),"ar",{sensitivity:"base"});});}
@@ -592,7 +700,7 @@ function migrateConfig(cfg){
   SEED_PROJECTS.forEach(function(sp){
     if(!projects.some(function(q){return q.name===sp.name;}))projects.push(sp);
   });
-  return {projects:projects,people:cfg.people,rev:CONFIG_REV};
+  return {projects:projects,people:cfg.people,limits:cfg.limits||null,rev:CONFIG_REV};
 }
 var store={
   mode:"pending",            /* pending | local | cloud */
@@ -807,10 +915,11 @@ function mergeConfig(cloud,local){
   (local.people||[]).forEach(function(n){
     if(n&&!people.some(function(m){return String(m).toLowerCase()===String(n).toLowerCase();})) people.push(n);
   });
-  return {projects:projects,people:people,rev:CONFIG_REV};
+  return {projects:projects,people:people,limits:cloud.limits||local.limits||null,rev:CONFIG_REV};
 }
 /* ------------------------------ الحالة الحالية للواجهة ------------------------------ */
-var ui={page:"entry",currentId:null,openId:null,filterStatus:"",dirtyIpc:false};
+var ui={page:"entry",currentId:null,openId:null,filterStatus:"",dirtyIpc:false,
+        openMetric:null,person:""};
 
 /* ------------------------------ العمود الأيمن ------------------------------ */
 function renderSaved(){
@@ -1064,7 +1173,7 @@ function renderSummary(){
   var body=$("summaryBody");body.textContent="";
   var recs=filteredRecords();
   if(!recs.length){
-    var tr=el("tr"),td=el("td","empty","لا توجد نتائج مطابقة.");td.colSpan=8;tr.appendChild(td);body.appendChild(tr);return;
+    var tr=el("tr"),td=el("td","empty","لا توجد نتائج مطابقة.");td.colSpan=9;tr.appendChild(td);body.appendChild(tr);return;
   }
   recs.forEach(function(rec){
     var lv=lastEvent(rec),s=lv?st(lv.status):null;
@@ -1075,12 +1184,21 @@ function renderSummary(){
     tr.appendChild(el("td","co",rec.company));
     tr.appendChild(el("td","num",rec.ipcNo));
     var t4=el("td");t4.appendChild(trackEl(rec));tr.appendChild(t4);
+    var rt=0;(rec.events||[]).forEach(function(e){if(e.status==="returned")rt++;});
+    var t4b=el("td");
+    if(rt){var rs=el("span","retn","↺ "+timesAr(rt));rs.title="رجعت للاستشاري للتعديل "+timesAr(rt);t4b.appendChild(rs);}
+    else t4b.appendChild(document.createTextNode("—"));
+    tr.appendChild(t4b);
     var t5=el("td");
     if(s)t5.appendChild(el("span","pill "+s.cls,s.label+(lv.status==="returned"&&lv.round?" "+lv.round:"")));
     tr.appendChild(t5);
     tr.appendChild(el("td","num",lv?fmtDate(lv.date):"—"));
     tr.appendChild(el("td",null,lv?lv.person:"—"));
-    tr.appendChild(el("td","co",lv?sinceText(lv.date):"—"));
+    var lateD=lv?lateDaysOf(lv):0;
+    var t8=el("td","co"+(lateD?" warn":""));
+    t8.appendChild(document.createTextNode(lv?sinceText(lv.date):"—"));
+    if(lateD){ t8.appendChild(lateTag(lateD)); t8.title="تجاوز حدّ مرحلة «"+st(lv.status).label+"» ("+limitFor(lv.status)+" يوم)"; }
+    tr.appendChild(t8);
     function toggle(){ui.openId=(ui.openId===rec.id)?null:rec.id;renderSummary();}
     tr.addEventListener("click",toggle);
     tr.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();toggle();}});
@@ -1089,7 +1207,7 @@ function renderSummary(){
   });
 }
 function detailRow(rec){
-  var tr=el("tr","detail"),td=el("td");td.colSpan=8;
+  var tr=el("tr","detail"),td=el("td");td.colSpan=9;
   var wrap=el("div","timeline");
   var evs=sortedEvents(rec);
   var ul=el("ul","tl");
@@ -1127,6 +1245,30 @@ function detailRow(rec){
 /* المقاييس كلها مشتقّة من تواريخ المراحل المسجّلة، بلا حقول إضافية. */
 /* «اكتمل» تقفل دورة المستخلص، فلا مدة تُحسب لها ولو سُجِّلت بعدها عملية */
 var CLOSING_STATUS="done";
+/* حد المرحلة بالأيام: ما ضبطه المستخدم، وإلا الافتراضي. و«اكتمل» لا حدّ لها. */
+function limitFor(key){
+  if(!key||key===CLOSING_STATUS)return 0;
+  var l=(store.config&&store.config.limits)||{};
+  var v=parseInt(l[key],10);
+  if(isFinite(v)&&v>0)return v;
+  return DEFAULT_LIMITS[key]||0;
+}
+/* كم يوماً تجاوز المستخلص حدّ مرحلته الحالية (0 = غير متأخر) */
+function lateDaysOf(lv){
+  if(!lv)return 0;
+  var lim=limitFor(lv.status); if(!lim)return 0;
+  var w=daysBetween(lv.date,todayISO());
+  return (isNaN(w)||w<=lim)?0:(w-lim);
+}
+/* صيغة الأيام بالعربية: يوم، يومان، 5 أيام، 25 يوماً */
+function daysAr(n){
+  if(n===1)return "يوم";
+  if(n===2)return "يومان";
+  return n+(n<11?" أيام":" يوماً");
+}
+/* وسم «متأخر …» */
+function lateTag(d){ return el("span","late-tag","متأخر "+daysAr(d)); }
+function timesAr(n){ return n===1?"مرة واحدة":(n===2?"مرتان":n+" مرات"); }
 function firstOf(evs,key){for(var i=0;i<evs.length;i++){if(evs[i].status===key)return evs[i];}return null;}
 
 /* ملخّص مستخلص واحد: الزمن الكلي، أيام الانتظار، عدد الترجيعات */
@@ -1138,6 +1280,7 @@ function recStats(rec){
     start:first.date, last:last, approved:!!appr,
     total: appr?daysBetween(first.date,appr.date):null,
     waiting: appr?null:Math.max(0,daysBetween(last.date,todayISO())),
+    lateDays: appr?0:lateDaysOf(last),
     returns: evs.filter(function(e){return e.status==="returned";}).length
   };
 }
@@ -1164,35 +1307,43 @@ function daysCell(v){
 
 /* المستخلصات بعد تطبيق مُرشِّحات صفحة التحليلات */
 function anRecords(){
-  var t=$("aType").value, per=$("aPerson").value, days=parseInt($("aPeriod").value,10)||0;
-  var cutoff=null;
-  if(days){var x=new Date();x.setDate(x.getDate()-days);
-    cutoff=x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");}
+  var t=$("aType").value, per=$("aPerson").value;
   return store.ipcs.map(recStats).filter(function(m){
     if(!m)return false;
     if(t&&m.type!==t)return false;
     if(per&&!m.evs.some(function(e){return e.person===per;}))return false;
-    if(cutoff&&m.last.date<cutoff)return false;
     return true;
   });
 }
 /* مجموعة مقاييس لأي قائمة مستخلصات */
 function anAggregate(ms){
   var done=ms.filter(function(m){return m.approved;});
+  var rt=0; ms.forEach(function(m){rt+=m.returns;});
   return {
     count:ms.length,
     approved:done.length,
     open:ms.length-done.length,
+    late:ms.filter(function(m){return m.lateDays>0;}).length,
     avgTotal:avg(done.map(function(m){return m.total;})),
-    avgWaiting:avg(ms.filter(function(m){return !m.approved;}).map(function(m){return m.waiting;})),
-    avgReturns:avg(ms.map(function(m){return m.returns;})),
+    returnsTotal:rt,
+    /* الترجيعات لكل 10 مستخلصات: الكسر الصغير (0.2) لا يُقرأ، والضرب في 10 يجعله عدداً مفهوماً */
+    returnsPer10: ms.length?(rt/ms.length*10):null,
     returnedShare: ms.length?(ms.filter(function(m){return m.returns>0;}).length/ms.length*100):null
   };
+}
+/* نص قيمة مقياس في جدول المقارنة ورسومه */
+function cmpText(v,fmt){
+  if(v==null)return"—";
+  if(fmt==="int")return String(v);
+  if(fmt==="pct")return Math.round(v)+"%";
+  if(fmt==="days")return num(v)+" يوم";
+  return num(v);
 }
 /* صف شريط: تسمية + شريط + قيمة مباشرة (القيمة مكتوبة، فاللون ليس وحده) */
 function barRow(label,value,max,color,text){
   var row=el("div","bar-row");
-  row.appendChild(el("div","lbl",label));
+  var lbl=el("div","lbl",label);lbl.title=label;
+  row.appendChild(lbl);
   var track=el("div","bar-track");
   var fill=el("div","bar-fill");
   fill.style.width=(max>0?Math.max(1,(value/max)*100):0)+"%";
@@ -1203,8 +1354,33 @@ function barRow(label,value,max,color,text){
   row.appendChild(el("div","val",text));
   return row;
 }
+/* محرّر حدود التأخر: يُبنى مرة واحدة ثم تُحدَّث قيمه، كي لا يقفز المؤشر أثناء الكتابة */
+function renderLimits(){
+  var box=$("anLimits");
+  var stages=STATUSES.filter(function(x){return x.key!==CLOSING_STATUS;});
+  if(!box.childElementCount){
+    stages.forEach(function(x){
+      var f=el("div","field");
+      var lab=el("label",null,x.label);lab.setAttribute("for","lim-"+x.key);
+      var inp=el("input");inp.id="lim-"+x.key;inp.type="number";inp.min="1";inp.step="1";inp.className="num";
+      inp.addEventListener("change",function(){
+        var v=parseInt(inp.value,10);
+        var l={};
+        var cur=store.config.limits||{};
+        Object.keys(cur).forEach(function(k){l[k]=cur[k];});
+        if(isFinite(v)&&v>0)l[x.key]=v; else delete l[x.key];
+        store.config.limits=l;
+        saveConfig();
+        toast("تم حفظ حدّ مرحلة "+x.label+".");
+      });
+      f.appendChild(lab);f.appendChild(inp);box.appendChild(f);
+    });
+  }
+  stages.forEach(function(x){ $("lim-"+x.key).value=limitFor(x.key); });
+}
 function renderAnalytics(){
   if(ui.page!=="stats")return;
+  renderLimits();
   var ms=anRecords(), g=anAggregate(ms);
   $("anMeta").textContent=ms.length?(ms.length+" مستخلص ضمن المُرشِّحات"):"";
   $("anEmpty").hidden=!!ms.length;
@@ -1215,7 +1391,7 @@ function renderAnalytics(){
    ["مكتملة",String(g.approved),"وصلت إلى مرحلة «اكتمل»"],
    ["جارية",String(g.open),"لم تصل إلى «اكتمل» بعد — ومنها ما سُجِّل باعتماد وينتظر الاكتمال"],
    ["متوسط مدة الإنجاز",num(g.avgTotal," يوم"),"للمكتملة فقط: الأيام من أول مرحلة إلى «اكتمل»"],
-   ["متوسط الركود الحالي",num(g.avgWaiting," يوم"),"لغير المكتملة: الأيام منذ آخر مرحلة سُجِّلت حتى اليوم"],
+   ["متأخرة الآن",String(g.late),"مستخلصات جارية تجاوزت حدّ مرحلتها الحالية — الحدود تُضبط من «حدود التأخر لكل مرحلة»"],
    ["نسبة المرتجعة",g.returnedShare==null?"—":Math.round(g.returnedShare)+"%","حصة المستخلصات التي رجعت للاستشاري مرة على الأقل"]
   ].forEach(function(d){
     var c=el("div","stat");
@@ -1239,6 +1415,27 @@ function renderAnalytics(){
     sbox.appendChild(el("p","an-note","العدد بين قوسين في التلميح هو عدد الانتقالات المقيسة، لا عدد المستخلصات."));
   }
 
+  /* --- الاتجاه شهراً بشهر: متوسط الإنجاز حسب شهر الاكتمال --- */
+  var byMonth={};
+  ms.forEach(function(m){
+    if(!m.approved||m.total==null)return;
+    var dn=firstOf(m.evs,CLOSING_STATUS); if(!dn)return;
+    var k=String(dn.date).slice(0,7);
+    (byMonth[k]=byMonth[k]||[]).push(m.total);
+  });
+  var mk=Object.keys(byMonth).sort().slice(-12);
+  var tbox=$("anTrend");tbox.textContent="";
+  if(!mk.length){
+    tbox.appendChild(el("p","an-note","لا توجد مستخلصات مكتملة بعد ضمن المُرشِّحات، فلا اتجاه يُرسم."));
+  } else {
+    var tmx=Math.max.apply(null,mk.map(function(k){return avg(byMonth[k]);}));
+    mk.forEach(function(k){
+      var v=avg(byMonth[k]), parts=k.split("-");
+      tbox.appendChild(barRow(parts[1]+"/"+parts[0]+" ("+byMonth[k].length+")",v,tmx,null,num(v)+" يوم"));
+    });
+    tbox.appendChild(el("p","an-note","الرقم بين قوسين عدد المستخلصات التي اكتملت في ذلك الشهر. آخر 12 شهراً فيها اكتمال."));
+  }
+
   /* --- مقاول مقابل استشاري --- */
   var showCmp = !$("aType").value;
   $("anCompareCard").hidden=!showCmp;
@@ -1246,60 +1443,138 @@ function renderAnalytics(){
     var A=anAggregate(ms.filter(function(m){return m.type==="مقاول";}));
     var B=anAggregate(ms.filter(function(m){return m.type==="استشاري";}));
     var metrics=[
-      {k:"متوسط مدة الإنجاز (يوم)", a:A.avgTotal, b:B.avgTotal, s:" يوم"},
-      {k:"متوسط الركود الحالي (يوم)", a:A.avgWaiting, b:B.avgWaiting, s:" يوم"},
-      {k:"متوسط عدد الترجيعات", a:A.avgReturns, b:B.avgReturns, s:""}
+      {k:"عدد المستخلصات", a:A.count, b:B.count, fmt:"int"},
+      {k:"مكتملة", a:A.approved, b:B.approved, fmt:"int"},
+      {k:"جارية", a:A.open, b:B.open, fmt:"int"},
+      {k:"متأخرة الآن", a:A.late, b:B.late, fmt:"int"},
+      {k:"متوسط مدة الإنجاز", a:A.avgTotal, b:B.avgTotal, fmt:"days"},
+      {k:"نسبة المرتجعة", a:A.returnedShare, b:B.returnedShare, fmt:"pct"},
+      {k:"مرات الترجيع لكل 10 مستخلصات", a:A.returnsPer10, b:B.returnsPer10, fmt:"num"}
     ];
-    var cb=$("anCompare");cb.textContent="";
-    metrics.forEach(function(m){
-      var grp=el("div","cmp-group");
-      var h=el("h3",null,m.k);grp.appendChild(h);
-      var bars=el("div","bars");
-      var mx2=Math.max(m.a||0,m.b||0);
-      bars.appendChild(barRow("مقاول",m.a||0,mx2,"var(--c-mqawil)",num(m.a,m.s)));
-      bars.appendChild(barRow("استشاري",m.b||0,mx2,"var(--c-istishari)",num(m.b,m.s)));
-      grp.appendChild(bars);cb.appendChild(grp);
-    });
     var tb=$("anCompareBody");tb.textContent="";
-    [["عدد المستخلصات",String(A.count),String(B.count)],
-     ["مكتملة",String(A.approved),String(B.approved)],
-     ["جارية",String(A.open),String(B.open)],
-     ["متوسط مدة الإنجاز",A.avgTotal,B.avgTotal,"days"],
-     ["متوسط الركود الحالي",A.avgWaiting,B.avgWaiting,"days"],
-     ["متوسط عدد الترجيعات",num(A.avgReturns),num(B.avgReturns)],
-     ["نسبة المرتجعة",A.returnedShare==null?"—":Math.round(A.returnedShare)+"%",
-                      B.returnedShare==null?"—":Math.round(B.returnedShare)+"%"]
-    ].forEach(function(r){
+    metrics.forEach(function(m,i){
+      var open=(ui.openMetric===i);
       var tr=el("tr");
-      tr.appendChild(el("td",null,r[0]));
-      if(r[3]==="days"){ tr.appendChild(daysCell(r[1])); tr.appendChild(daysCell(r[2])); }
-      else { tr.appendChild(el("td","num",r[1])); tr.appendChild(el("td","num",r[2])); }
+      tr.appendChild(el("td",null,m.k));
+      if(m.fmt==="days"){ tr.appendChild(daysCell(m.a)); tr.appendChild(daysCell(m.b)); }
+      else { tr.appendChild(el("td","num",cmpText(m.a,m.fmt))); tr.appendChild(el("td","num",cmpText(m.b,m.fmt))); }
+      var tdb=el("td");
+      var b=el("button","cmpbtn",open?"إخفاء":"رسم");b.type="button";
+      b.setAttribute("aria-expanded",String(open));
+      b.title=(open?"إخفاء رسم ":"عرض رسم ")+m.k;
+      b.addEventListener("click",function(){ ui.openMetric=open?null:i; renderAnalytics(); });
+      tdb.appendChild(b);tr.appendChild(tdb);
       tb.appendChild(tr);
+      if(open)tb.appendChild(cmpChartRow(m));
     });
   }
 
-  /* --- أداء المسؤولين: أيام بين المرحلة السابقة وتسجيله للمرحلة --- */
-  var byPerson={};
+  /* --- المشاريع مقابل بعضها --- */
+  var byProj={};
+  ms.forEach(function(m){ (byProj[m.rec.project]=byProj[m.rec.project]||[]).push(m); });
+  var pnames=Object.keys(byProj).map(function(k){
+    var g2=anAggregate(byProj[k]);
+    return {name:k, company:byProj[k][0].rec.company, type:byProj[k][0].type, g:g2};
+  }).sort(function(a,b){
+    var x=a.g.avgTotal, y=b.g.avgTotal;
+    if(x==null&&y==null)return b.g.count-a.g.count;
+    if(x==null)return 1;
+    if(y==null)return -1;
+    return y-x;
+  });
+  var prb=$("anProjectsBody");prb.textContent="";
+  if(!pnames.length){
+    var tr2=el("tr"),td2=el("td","empty","لا توجد مشاريع ضمن المُرشِّحات.");td2.colSpan=8;tr2.appendChild(td2);prb.appendChild(tr2);
+  } else pnames.forEach(function(r){
+    var tr=el("tr");
+    tr.appendChild(el("td","proj",r.name));
+    tr.appendChild(el("td","co",r.company||"—"));
+    tr.appendChild(el("td",null,r.type||"—"));
+    tr.appendChild(el("td","num",String(r.g.count)));
+    tr.appendChild(el("td","num",String(r.g.approved)));
+    tr.appendChild(daysCell(r.g.avgTotal));
+    tr.appendChild(el("td","num",String(r.g.returnsTotal)));
+    tr.appendChild(el("td","num"+(r.g.late?" warn":""),String(r.g.late)));
+    prb.appendChild(tr);
+  });
+
+  /* --- أداء المسؤولين: ما عنده الآن، ومتوسط تنفيذه --- */
+  var byPerson=personTotals(ms);
+  /* ما يمسكه كل مسؤول الآن: مستخلص جارٍ آخر مرحلة فيه سجّلها هو */
+  var holds={};
   ms.forEach(function(m){
-    for(var i=1;i<m.evs.length;i++){
-      var d=daysBetween(m.evs[i-1].date,m.evs[i].date);
-      if(isNaN(d)||d<0)continue;
-      var who=m.evs[i].person||"—";
-      (byPerson[who]=byPerson[who]||[]).push(d);
-    }
+    if(m.approved)return;
+    var who=m.last.person||"—";
+    var h=holds[who]||(holds[who]={n:0,oldest:0,late:0});
+    h.n++;
+    if(m.waiting>h.oldest)h.oldest=m.waiting;
+    if(m.lateDays>0)h.late++;
   });
   var pb=$("anPeopleBody");pb.textContent="";
-  var names=Object.keys(byPerson).sort(function(a,b){return avg(byPerson[b])-avg(byPerson[a]);});
+  var names=Object.keys(byPerson).sort(function(a,b){
+    var ha=(holds[a]&&holds[a].n)||0, hb=(holds[b]&&holds[b].n)||0;
+    if(ha!==hb)return hb-ha;
+    var oa=(holds[a]&&holds[a].oldest)||0, ob=(holds[b]&&holds[b].oldest)||0;
+    if(oa!==ob)return ob-oa;
+    var x=avg(byPerson[a].days), y=avg(byPerson[b].days);
+    if(x==null&&y==null)return 0;
+    if(x==null)return 1;
+    if(y==null)return -1;
+    return y-x;
+  });
   if(!names.length){
-    var tr0=el("tr"),td0=el("td","empty","لا توجد بيانات كافية.");td0.colSpan=4;tr0.appendChild(td0);pb.appendChild(tr0);
+    var tr0=el("tr"),td0=el("td","empty","لا توجد بيانات كافية.");td0.colSpan=5;tr0.appendChild(td0);pb.appendChild(tr0);
   } else names.forEach(function(n){
-    var a=byPerson[n],tr=el("tr");
+    var a=byPerson[n],h=holds[n]||{n:0,oldest:0,late:0},tr=el("tr","ipc");
+    tr.setAttribute("role","button");tr.setAttribute("tabindex","0");
+    tr.title="عرض مستخلصات "+n+" وتفاصيلها";
     tr.appendChild(el("td",null,n));
-    tr.appendChild(el("td","num",String(a.length)));
-    tr.appendChild(daysCell(avg(a)));
-    tr.appendChild(daysCell(Math.max.apply(null,a)));
+    var tdH=el("td","num"+(h.late?" warn":""),String(h.n));
+    if(h.late)tdH.title="منها "+h.late+" متأخرة عن حدّ مرحلتها";
+    tr.appendChild(tdH);
+    tr.appendChild(h.n?daysCell(h.oldest):el("td","num","—"));
+    tr.appendChild(daysCell(avg(a.days)));
+    tr.appendChild(el("td","num",String(a.n)));
+    tr.addEventListener("click",function(){openPerson(n);});
+    tr.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();openPerson(n);}});
     pb.appendChild(tr);
   });
+
+  /* --- مصفوفة: متوسط تنفيذ كل مسؤول في كل مرحلة --- */
+  var mtx={};
+  ms.forEach(function(m){
+    m.evs.forEach(function(e,i){
+      var d=execDays(m.evs,i); if(d==null)return;
+      var who=e.person||"—";
+      var pm=mtx[who]||(mtx[who]={});
+      (pm[e.status]=pm[e.status]||[]).push(d);
+    });
+  });
+  var mnames=Object.keys(mtx).sort(function(a,b){
+    return String(a).localeCompare(String(b),"ar",{sensitivity:"base"});});
+  var cols=STATUSES.filter(function(x){
+    return mnames.some(function(w){return mtx[w][x.key]&&mtx[w][x.key].length;});});
+  var mh=$("anMatrixHead"),mb=$("anMatrixBody");
+  mh.textContent="";mb.textContent="";
+  $("anMatrixCard").hidden=!mnames.length;
+  if(mnames.length){
+    mh.appendChild(el("th",null,"المسؤول"));
+    cols.forEach(function(x){var th=el("th","end",x.short);th.title=x.label;mh.appendChild(th);});
+    mnames.forEach(function(n){
+      var tr=el("tr");
+      tr.appendChild(el("td",null,n));
+      cols.forEach(function(x){
+        var a=mtx[n][x.key];
+        if(!a||!a.length){ tr.appendChild(el("td","num","—")); return; }
+        var v=avg(a), lim=limitFor(x.key);
+        var td=el("td","num"+(lim&&v>lim?" warn":""),String(Math.round(v*10)/10));
+        td.title=x.label+": "+a.length+" مرة"+(lim?" — حدّ المرحلة "+lim+" يوم":"");
+        tr.appendChild(td);
+      });
+      mb.appendChild(tr);
+    });
+  }
 
   /* --- الأطول انتظاراً --- */
   var stuck=ms.filter(function(m){return !m.approved;})
@@ -1313,9 +1588,178 @@ function renderAnalytics(){
     tr.appendChild(el("td","num",m.rec.ipcNo));
     var td=el("td");td.appendChild(el("span","pill "+sInfo.cls,sInfo.label));tr.appendChild(td);
     tr.appendChild(el("td",null,m.last.person||"—"));
-    tr.appendChild(daysCell(m.waiting));
+    var tdW=daysCell(m.waiting);
+    if(m.lateDays>0){ tdW.className="warn"; tdW.appendChild(lateTag(m.lateDays)); }
+    tr.appendChild(tdW);
     kb.appendChild(tr);
   });
+}
+
+
+/* صف الرسم تحت صف المقياس في جدول «مقاول مقابل استشاري» */
+function cmpChartRow(m){
+  var tr=el("tr","detail"),td=el("td");td.colSpan=4;
+  var wrap=el("div","chartbox");
+  wrap.appendChild(el("h3","cmp-ttl",m.k));
+  var bars=el("div","bars");
+  var mx=Math.max(m.a||0,m.b||0);
+  bars.appendChild(barRow("مقاول",m.a||0,mx,"var(--c-mqawil)",cmpText(m.a,m.fmt)));
+  bars.appendChild(barRow("استشاري",m.b||0,mx,"var(--c-istishari)",cmpText(m.b,m.fmt)));
+  wrap.appendChild(bars);
+  td.appendChild(wrap);tr.appendChild(td);
+  return tr;
+}
+
+/* ------------------------------ أداء مسؤول واحد ------------------------------ */
+/* التنفيذ = الأيام من تسجيل المرحلة السابقة إلى تسجيله هو للمرحلة.
+   أول مرحلة في المستخلص لا مدة لها إذ لا مرحلة قبلها. */
+function execDays(evs,i){
+  if(i<1)return null;
+  var d=daysBetween(evs[i-1].date,evs[i].date);
+  return (isNaN(d)||d<0)?null:d;
+}
+/* لكل مسؤول: عدد المراحل التي سجّلها، ومدد تنفيذه المقيسة */
+function personTotals(ms){
+  var by={};
+  ms.forEach(function(m){
+    m.evs.forEach(function(e,i){
+      var who=e.person||"—";
+      var t=by[who]||(by[who]={days:[],n:0});
+      t.n++;
+      var d=execDays(m.evs,i);
+      if(d!=null)t.days.push(d);
+    });
+  });
+  return by;
+}
+/* مستخلصات مسؤول معيّن، ومراحله في كل مستخلص */
+function personEntries(ms,who){
+  var out=[];
+  ms.forEach(function(m){
+    var items=[];
+    m.evs.forEach(function(e,i){
+      if((e.person||"—")!==who)return;
+      items.push({ev:e,days:execDays(m.evs,i)});
+    });
+    if(items.length)out.push({m:m,items:items,holding:(m.last.person||"—")===who&&!m.approved});
+  });
+  out.sort(function(a,b){
+    if(a.holding!==b.holding)return a.holding?-1:1;
+    return String(a.m.rec.project).localeCompare(String(b.m.rec.project),"ar",{numeric:true});
+  });
+  return out;
+}
+function openPerson(name){
+  ui.person=name;
+  showPage("person");
+  renderPerson();
+  window.scrollTo(0,0);
+}
+/* بطاقة مستخلص واحد في صفحة المسؤول: كل مراحله، ومراحل صاحب الصفحة مظلّلة */
+function personIpcBlock(en,who){
+  var m=en.m,box=el("div","ipc-block");
+  var head=el("div","ipc-head");
+  var t=el("div","t");
+  t.appendChild(document.createTextNode(m.rec.project+" — مستخلص "));
+  t.appendChild(el("span","num",String(m.rec.ipcNo)));
+  head.appendChild(t);
+  if(m.rec.company)head.appendChild(el("span","co",m.rec.company));
+  if(m.type)head.appendChild(el("span","tag",m.type));
+  var sInfo=st(m.last.status);
+  head.appendChild(el("span","pill "+sInfo.cls,sInfo.label));
+  if(en.holding)head.appendChild(el("span","tag now","عنده الآن"));
+  box.appendChild(head);
+
+  var mine=en.items.map(function(it){return it.days;}).filter(function(d){return d!=null;});
+  var meta=el("p","ipc-meta");
+  meta.appendChild(document.createTextNode("مراحله هنا: "));
+  meta.appendChild(el("span","num",String(en.items.length)));
+  meta.appendChild(document.createTextNode(" · متوسط تنفيذه: "));
+  if(mine.length){
+    meta.appendChild(el("span","num",String(Math.round(avg(mine)*10)/10)));
+    meta.appendChild(document.createTextNode(" يوم"));
+  } else meta.appendChild(document.createTextNode("—"));
+  if(!m.approved&&m.waiting!=null){
+    meta.appendChild(document.createTextNode(" · واقف منذ "));
+    meta.appendChild(el("span","num",String(m.waiting)));
+    meta.appendChild(document.createTextNode(" يوم"));
+    if(m.lateDays>0)meta.appendChild(lateTag(m.lateDays));
+  }
+  box.appendChild(meta);
+
+  var tw=el("div","tablewrap"),tbl=el("table");
+  var thead=el("thead"),trh=el("tr");
+  ["المرحلة","التاريخ","المسؤول","أيام التنفيذ","الملاحظة"].forEach(function(h){
+    trh.appendChild(el("th",h==="أيام التنفيذ"?"end":null,h));});
+  thead.appendChild(trh);tbl.appendChild(thead);
+  var tb=el("tbody");
+  m.evs.forEach(function(e,i){
+    var isMine=(e.person||"—")===who;
+    var tr=el("tr",isMine?"mine":null);
+    var s2=st(e.status);
+    var td1=el("td");
+    td1.appendChild(el("span","pill "+s2.cls,s2.label+(e.status==="returned"&&e.round?" "+e.round:"")));
+    tr.appendChild(td1);
+    tr.appendChild(el("td","num",fmtDate(e.date)));
+    tr.appendChild(el("td",null,e.person||"—"));
+    tr.appendChild(daysCell(execDays(m.evs,i)));
+    tr.appendChild(el("td","co",e.note||"—"));
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb);tw.appendChild(tbl);box.appendChild(tw);
+  return box;
+}
+function renderPerson(){
+  if(ui.page!=="person")return;
+  var who=ui.person||"—";
+  $("pnTitle").textContent="مستخلصات "+who;
+  var entries=personEntries(anRecords(),who);
+
+  var allDays=[],byStage={},stages=0,holding=0;
+  entries.forEach(function(en){
+    if(en.holding)holding++;
+    en.items.forEach(function(it){
+      stages++;
+      if(it.days!=null){
+        allDays.push(it.days);
+        (byStage[it.ev.status]=byStage[it.ev.status]||[]).push(it.days);
+      }
+    });
+  });
+
+  var box=$("pnKpis");box.textContent="";
+  [["عدد مستخلصاته",String(entries.length),"المستخلصات التي سجّل فيها مرحلة واحدة على الأقل"],
+   ["عنده الآن",String(holding),"مستخلصات لم تكتمل وآخر مرحلة فيها سجّلها هو"],
+   ["مراحل سجّلها",String(stages),"إجمالي المراحل التي سجّلها في كل مستخلصاته"],
+   ["متوسط التنفيذ",num(avg(allDays)," يوم"),"متوسط الأيام بين المرحلة السابقة وتسجيله هو للمرحلة"]
+  ].forEach(function(d){
+    var c=el("div","stat");c.title=d[2];
+    c.appendChild(el("span","v",d[1]));
+    c.appendChild(el("span","k",d[0]));
+    box.appendChild(c);
+  });
+
+  var any=!!entries.length;
+  $("pnEmpty").hidden=any;
+  $("pnStagesCard").hidden=!any;
+  $("pnIpcsCard").hidden=!any;
+  if(!any)return;
+
+  var sbox=$("pnStages");sbox.textContent="";
+  var rows=STATUSES.filter(function(x){return byStage[x.key]&&byStage[x.key].length;})
+    .map(function(x){return {label:x.label,v:avg(byStage[x.key]),n:byStage[x.key].length};});
+  if(!rows.length){
+    sbox.appendChild(el("p","an-note","كل مراحله أولى في مستخلصاتها، فلا مدة تنفيذ تُقاس لها."));
+  } else {
+    var mx=Math.max.apply(null,rows.map(function(r){return r.v;}));
+    rows.forEach(function(r){
+      sbox.appendChild(barRow(r.label+" ("+r.n+")",r.v,mx,null,num(r.v)+" يوم"));});
+    sbox.appendChild(el("p","an-note","الرقم بين قوسين عدد المرات التي سجّل فيها المرحلة."));
+  }
+
+  $("pnCount").textContent=entries.length+" مستخلص";
+  var ib=$("pnIpcs");ib.textContent="";
+  entries.forEach(function(en){ ib.appendChild(personIpcBlock(en,who)); });
 }
 
 /* ------------------------------ التصدير ------------------------------ */
@@ -1439,22 +1883,51 @@ function exportPdfNode(node,filename){
     return html2canvas(node,{scale:2,backgroundColor:"#FFFFFF"});
   }).then(function(canvas){
     document.body.removeChild(host);
-    var jsPDF=window.jspdf.jsPDF;
-    var pdf=new jsPDF({orientation:"p",unit:"pt",format:"a4"});
-    var margin=22;
-    var pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
-    var iw=pw-margin*2, ih=canvas.height*iw/canvas.width;
-    var pageH=ph-margin*2, pages=Math.max(1,Math.ceil(ih/pageH));
-    var img=canvas.toDataURL("image/jpeg",0.92);
-    for(var i=0;i<pages;i++){
-      if(i)pdf.addPage();
-      pdf.addImage(img,"JPEG",margin,margin-i*pageH,iw,ih);
-    }
-    saveFile(filename,pdf.output("blob"));
+    canvasToPdf(canvas,filename);
   })["catch"](function(){
     if(host.parentNode)document.body.removeChild(host);
     toast("تعذّر إنشاء ملف PDF.");
   });
+}
+/* صورة الصفحة إلى ملف PDF بصفحات A4 */
+function canvasToPdf(canvas,filename){
+  var jsPDF=window.jspdf.jsPDF;
+  var pdf=new jsPDF({orientation:"p",unit:"pt",format:"a4"});
+  var margin=22;
+  var pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+  var iw=pw-margin*2, ih=canvas.height*iw/canvas.width;
+  var pageH=ph-margin*2, raw=ih/pageH, frac=raw-Math.floor(raw), pages;
+  /* فائض بسيط لا يستحق صفحة شبه فارغة: يُصغَّر الرسم قليلاً ليدخل في الصفحات السابقة */
+  if(raw>1&&frac>0&&frac<0.12){ pages=Math.floor(raw); var f=pages*pageH/ih; iw*=f; ih*=f; }
+  else pages=Math.max(1,Math.ceil(raw));
+  var img=canvas.toDataURL("image/jpeg",0.92);
+  for(var i=0;i<pages;i++){
+    if(i)pdf.addPage();
+    pdf.addImage(img,"JPEG",margin,margin-i*pageH,iw,ih);
+  }
+  saveFile(filename,pdf.output("blob"));
+}
+/* صفحة التحليل (أو صفحة مسؤول) كما تُرى، إلى PDF */
+function exportPdfView(nodeId,filename){
+  if(typeof html2canvas==="undefined"||!window.jspdf){toast("تعذّر تحميل مكتبة PDF، تحقق من الاتصال.");return;}
+  var node=$(nodeId);
+  node.classList.add("pdfshot");
+  /* التفاصيل المطوية ترتسم ناقصة في html2canvas، فتُفتح أثناء الالتقاط وتُعاد */
+  var opened=[];
+  Array.prototype.forEach.call(node.querySelectorAll("details"),function(d){
+    if(!d.open){d.open=true;opened.push(d);}});
+  function done(){
+    node.classList.remove("pdfshot");
+    opened.forEach(function(d){d.open=false;});
+  }
+  toast("جارٍ تجهيز ملف PDF…");
+  var fontsReady=(document.fonts&&document.fonts.ready)?document.fonts.ready:Promise.resolve();
+  fontsReady["catch"](function(){}).then(function(){
+    return html2canvas(node,{scale:2,backgroundColor:"#FFFFFF"});
+  }).then(function(canvas){
+    done();
+    canvasToPdf(canvas,filename);
+  })["catch"](function(){ done(); toast("تعذّر إنشاء ملف PDF."); });
 }
 function exportPdf(){
   var recs=filteredRecords();
@@ -1474,11 +1947,13 @@ function showPage(p){
   $("pageEntry").hidden=(p!=="entry");
   $("pageSummary").hidden=(p!=="summary");
   $("pageStats").hidden=(p!=="stats");
+  $("pagePerson").hidden=(p!=="person");
   $("sideCol").hidden=(p!=="entry");
   document.querySelector(".layout").classList.toggle("full",p!=="entry");
   $("tabEntry").setAttribute("aria-selected",String(p==="entry"));
   $("tabSummary").setAttribute("aria-selected",String(p==="summary"));
-  $("tabStats").setAttribute("aria-selected",String(p==="stats"));
+  /* صفحة المسؤول تفريع من التحليل، فيبقى تبويبه محدَّداً */
+  $("tabStats").setAttribute("aria-selected",String(p==="stats"||p==="person"));
 }
 var CONN_MSG={
   pending:"جارٍ الاتصال بقاعدة البيانات…",
@@ -1520,14 +1995,18 @@ function renderAll(){
   renderStats();
   renderSummary();
   renderAnalytics();
+  renderPerson();
 }
 function wire(){
   $("tabEntry").addEventListener("click",function(){showPage("entry");});
   $("tabSummary").addEventListener("click",function(){showPage("summary");renderStats();renderSummary();});
   $("tabStats").addEventListener("click",function(){showPage("stats");renderAnalytics();});
-  ["aType","aPerson","aPeriod"].forEach(function(id){
-    $(id).addEventListener("change",renderAnalytics);});
-  $("btnPrintStats").addEventListener("click",function(){window.print();});
+  ["aType","aPerson"].forEach(function(id){
+    $(id).addEventListener("change",function(){ui.openMetric=null;renderAnalytics();});});
+  $("btnPdfStats").addEventListener("click",function(){exportPdfView("pageStats","ipc-analytics.pdf");});
+  $("btnPnBack").addEventListener("click",function(){showPage("stats");renderAnalytics();});
+  $("btnPnPdf").addEventListener("click",function(){
+    exportPdfView("pagePerson","IPC-"+(ui.person||"person")+".pdf");});
   $("fProject").addEventListener("change",function(){syncCompany();ui.currentId=null;renderEntryState();renderSaved();});
   $("fIpc").addEventListener("input",function(){ui.currentId=null;renderEntryState();renderSaved();});
   $("fStatus").addEventListener("change",syncRoundField);
