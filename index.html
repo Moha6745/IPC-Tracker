@@ -107,6 +107,7 @@ textarea{resize:vertical;min-height:38px}
 .row .field.date{flex:0 0 165px}
 .row textarea{height:38px;min-height:38px}
 
+
 .btn{font:inherit;font-weight:600;font-size:13px;border-radius:8px;padding:9px 18px;border:1px solid transparent;cursor:pointer;
   background:var(--surface);color:var(--ink-2);border-color:var(--line)}
 .btn:hover{border-color:var(--accent-2);color:var(--accent)}
@@ -114,6 +115,9 @@ textarea{resize:vertical;min-height:38px}
 .btn.primary:hover{background:var(--accent-2);border-color:var(--accent-2);color:var(--accent-ink)}
 .btn.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
 .btn.danger:hover{filter:brightness(1.06);color:#fff}
+/* حذف: ظاهر لمن يبحث عنه، لا يلفت اليد إليه. يمتلئ لونه عند المرور */
+.btn.danger.quiet{background:var(--surface);color:var(--danger);border-color:var(--line)}
+.btn.danger.quiet:hover{background:var(--danger);color:#fff;border-color:var(--danger);filter:none}
 .btn.small{padding:6px 12px;font-size:12px}
 .btn.block{width:100%}
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -136,6 +140,12 @@ textarea{resize:vertical;min-height:38px}
   border-radius:20px;padding:4px 6px 4px 10px;font-size:12px;color:var(--ink-2)}
 .chip button{border:0;background:none;color:var(--ink-3);cursor:pointer;font:inherit;font-size:13px;line-height:1;padding:0}
 .chip button:hover{color:var(--danger)}
+/* نموذجا الإضافة في العمود الجانبي: مطويّان، فالعمل اليومي هو القائمة والنموذج */
+details.add > summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:7px}
+details.add > summary::-webkit-details-marker{display:none}
+details.add > summary::before{content:"▸";color:var(--ink-3);font-size:11px}
+details.add[open] > summary::before{content:"▾"}
+details.add > summary:hover .ttl{color:var(--accent-2)}
 details.manage{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
 details.manage summary{cursor:pointer;font-size:12px;font-weight:600;color:var(--ink-2);list-style:none}
 details.manage summary::-webkit-details-marker{display:none}
@@ -332,8 +342,9 @@ tr.mine td{background:var(--accent-soft)}
       </section>
 
       <section class="card">
-        <h2 class="ttl" style="margin-bottom:12px">إضافة مشروع / شركة <span class="en">(Project)</span></h2>
-        <div class="grid">
+        <details class="add">
+        <summary><span class="ttl">إضافة مشروع / شركة <span class="en">(Project)</span></span></summary>
+        <div class="grid" style="margin-top:12px">
           <div class="field"><label for="npProject">اسم المشروع</label><input id="npProject"></div>
           <div class="field"><label for="npCompany">اسم الشركة</label><input id="npCompany"></div>
           <div class="field"><label for="npType">نوع المشروع</label>
@@ -345,15 +356,18 @@ tr.mine td{background:var(--accent-soft)}
           <summary>المشاريع المسجّلة <span class="num" id="projCount">0</span></summary>
           <div class="mini-list" id="projList"></div>
         </details>
+        </details>
       </section>
 
       <section class="card">
-        <h2 class="ttl" style="margin-bottom:12px">إضافة شخص مسؤول <span class="en">(Assignee)</span></h2>
-        <div class="grid">
+        <details class="add">
+        <summary><span class="ttl">إضافة شخص مسؤول <span class="en">(Assignee)</span></span></summary>
+        <div class="grid" style="margin-top:12px">
           <div class="field"><label for="npPerson">اسم الشخص</label><input id="npPerson"></div>
           <button class="btn primary block small" id="btnAddPerson">إضافة</button>
         </div>
         <div class="chips" id="peopleChips"></div>
+        </details>
       </section>
 
     </aside>
@@ -393,7 +407,7 @@ tr.mine td{background:var(--accent-soft)}
             <span class="spacer"></span>
             <button class="btn small" id="btnExcelIpc" hidden>تصدير Excel</button>
             <button class="btn small" id="btnPdfIpc" hidden>تصدير PDF</button>
-            <button class="btn small danger" id="btnDeleteIpc" hidden>حذف المستخلص</button>
+            <button class="btn small danger quiet" id="btnDeleteIpc" hidden>حذف المستخلص</button>
           </div>
         </section>
 
@@ -1202,7 +1216,7 @@ function detailRow(rec){
   var open=el("button","btn small","فتح في صفحة التسجيل");open.type="button";
   open.addEventListener("click",function(ev){ev.stopPropagation();loadRecord(rec.id);});
   act.appendChild(open);
-  var del=el("button","btn small danger","حذف المستخلص");del.type="button";
+  var del=el("button","btn small danger quiet","حذف المستخلص");del.type="button";
   del.addEventListener("click",function(ev){ev.stopPropagation();
     if(!confirm("حذف مستخلص "+rec.project+" — IPC "+rec.ipcNo+" وكل مراحله؟"))return;
     if(ui.currentId===rec.id)ui.currentId=null;
