@@ -235,6 +235,10 @@ tr.detail > td{background:var(--surface-2);padding:0}
 .legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2)}
 .legend i{width:10px;height:10px;border-radius:3px;flex:none}
 .an-note{color:var(--ink-3);font-size:12px;margin:10px 0 0;line-height:1.6}
+/* زر طيّ كتلة التحليل أسفل الجدول */
+.an-toggle{margin-bottom:16px}
+.an-toggle .btn{border-style:dashed;color:var(--accent);font-weight:700}
+.an-toggle .btn:hover{border-style:solid;background:var(--accent-soft)}
 .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
 .filters .field{min-width:150px}
 .filters .field.wide{flex:1;min-width:200px}
@@ -260,10 +264,6 @@ tr.detail > td{background:var(--surface-2);padding:0}
   border-radius:20px;padding:2px 9px;font-size:11.5px;color:var(--ink-2);white-space:nowrap}
 .tag.now{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
 tr.mine td{background:var(--accent-soft)}
-/* التأخر عن حد المرحلة */
-.late-tag{display:inline-flex;align-items:center;background:var(--danger-soft);color:var(--danger);
-  border-radius:20px;padding:1px 8px;font-size:11px;font-weight:600;white-space:nowrap;margin-inline-start:6px}
-td.warn{background:var(--danger-soft)}
 .retn{color:var(--s3-fg);font-weight:600;white-space:nowrap}
 /* التقاط صفحة التحليل إلى PDF: html2canvas لا يتعامل مع النص المتباعد
    ولا الرؤوس اللاصقة، فتُحيَّد أثناء التصدير فقط. */
@@ -273,7 +273,7 @@ td.warn{background:var(--danger-soft)}
 .pdfshot table{min-width:0}
 
 @media print{
-  .side,.tabs,.filters,.actions,.banner,.iconbtn{display:none !important}
+  .side,.tabs,.filters,.actions,.banner,.iconbtn,.an-toggle{display:none !important}
   .app{max-width:none;padding:0}
   .card{box-shadow:none;break-inside:avoid}
   body{background:#fff}
@@ -445,8 +445,12 @@ td.warn{background:var(--danger-soft)}
           </div>
         </section>
 
+        <div class="an-toggle">
+          <button class="btn block" type="button" id="btnAnToggle" aria-expanded="false" aria-controls="anBlock">إظهار التحليل ▾</button>
+        </div>
+
         <!-- التحليل: أرقام القائمة المعروضة أعلاه نفسها -->
-        <div id="anBlock">
+        <div id="anBlock" hidden>
         <section class="card">
           <div class="head">
             <h2 class="ttl">تحليل المعروض <span class="en">(Analytics)</span></h2>
@@ -467,8 +471,7 @@ td.warn{background:var(--danger-soft)}
                   <tr><td>نسبة المرتجعة</td><td>حصة المستخلصات التي مرّت بمرحلة «رجعت للاستشاري للتعديل» مرة واحدة على الأقل.</td></tr>
                   <tr><td>متوسط الأيام في كل مرحلة</td><td>من تاريخ تسجيل المرحلة إلى تاريخ تسجيل المرحلة التي تليها. و«اكتمل» مرحلة ختامية تقفل دورة المستخلص، فلا تُحسب لها مدة.</td></tr>
                   <tr><td>مرات الترجيع لكل 10 مستخلصات</td><td>إجمالي مرات «رجعت للاستشاري للتعديل» ÷ عدد المستخلصات × 10 — ليُقرأ عدداً مفهوماً بدل كسر صغير.</td></tr>
-                  <tr><td>متأخرة الآن</td><td>مستخلصات جارية بقيت في مرحلتها الحالية أكثر من الحد المعتاد لها: الاستلام 3 أيام، المراجعة 7، رجعت للاستشاري 5، تسجيل بموارد 5، تسجيل باعتماد 7.</td></tr>
-                  <tr><td>متوسط التنفيذ</td><td>للشخص: عدد الأيام بين تسجيل المرحلة السابقة وتسجيله هو للمرحلة — أي المدة التي بقي فيها العمل في يده. ولا تُحسب له أول مرحلة في المستخلص إذ لا مرحلة قبلها.</td></tr>
+                  <tr><td>متوسط التنفيذ</td><td>للشخص: عدد الأيام بين تسجيل المرحلة السابقة وتسجيله هو للمرحلة — أي المدة التي بقي فيها العمل في يده. ولا تُحسب له أول مرحلة في المستخلص إذ لا مرحلة قبلها، ولا مرحلة «اكتمل» إذ هي تسجيل ختامي لا عمل تحته.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -481,6 +484,19 @@ td.warn{background:var(--danger-soft)}
             <span class="hint">من تسجيل المرحلة إلى تسجيل التي تليها</span>
           </div>
           <div class="bars" id="anStages"></div>
+        </section>
+
+        <section class="card">
+          <div class="head">
+            <h2 class="ttl">الأطول انتظاراً الآن</h2>
+            <span class="hint">مستخلصات لم تكتمل بعد</span>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>المشروع</th><th class="end">المستخلص</th><th>الحالة الحالية</th><th>المسؤول</th><th class="end">أيام الانتظار</th></tr></thead>
+              <tbody id="anStuckBody"></tbody>
+            </table>
+          </div>
         </section>
 
         <section class="card" id="anCompareCard">
@@ -503,19 +519,6 @@ td.warn{background:var(--danger-soft)}
 
         <section class="card">
           <div class="head">
-            <h2 class="ttl">الأطول انتظاراً الآن</h2>
-            <span class="hint">مستخلصات لم تكتمل بعد</span>
-          </div>
-          <div class="tablewrap">
-            <table>
-              <thead><tr><th>المشروع</th><th class="end">المستخلص</th><th>الحالة الحالية</th><th>المسؤول</th><th class="end">أيام الانتظار</th></tr></thead>
-              <tbody id="anStuckBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="card">
-          <div class="head">
             <h2 class="ttl">أداء المسؤولين</h2>
             <span class="hint ui-only">اضغط على أي مسؤول لعرض مستخلصاته</span>
           </div>
@@ -531,7 +534,7 @@ td.warn{background:var(--danger-soft)}
         <section class="card" id="anMatrixCard">
           <div class="head">
             <h2 class="ttl">متوسط التنفيذ لكل مسؤول في كل مرحلة</h2>
-            <span class="hint">بالأيام — الخلايا الحمراء تجاوزت حدّ المرحلة</span>
+            <span class="hint">بالأيام</span>
           </div>
           <div class="tablewrap">
             <table>
@@ -601,8 +604,6 @@ var STATUSES=[
   {key:"done",    label:"اكتمل",                    short:"اكتمل",     step:5, cls:"s6"}
 ];
 var NEXT_STATUS={receive:"review",review:"mawared",returned:"review",mawared:"etimad",etimad:"done",done:"done"};
-/* حد الأيام المقبول في كل مرحلة قبل أن يُعدّ المستخلص متأخراً */
-var DEFAULT_LIMITS={receive:3,review:7,returned:5,mawared:5,etimad:7};
 var STEPS=5;
 function sortedPeople(){return store.config.people.slice().sort(function(a,b){
   return String(a).localeCompare(String(b),"ar",{sensitivity:"base"});});}
@@ -660,7 +661,8 @@ function lastEvent(rec){var e=sortedEvents(rec);return e.length?e[e.length-1]:nu
 var LS_CFG="ipctracker.config.v1",       /* إعدادات الوضع المحلي */
     LS_IPC="ipctracker.ipcs.v1",         /* مستخلصات الوضع المحلي */
     LS_MIR="ipctracker.cloudcache.v1",   /* نسخة احتياطية من السحابة للعمل دون اتصال */
-    LS_FB ="ipctracker.firebase.v1";     /* إعدادات مشروع Firebase التي أدخلها المستخدم */
+    LS_FB ="ipctracker.firebase.v1",     /* إعدادات مشروع Firebase التي أدخلها المستخدم */
+    LS_AN ="ipctracker.analytics.v1";    /* هل كتلة التحليل مفتوحة؟ تفضيل هذا المتصفح */
 
 var CONFIG_REV=2;
 /* إعدادات محفوظة من إصدار سابق: صحّح تصنيف الجهة وأضف ما نقص من المشاريع.
@@ -893,7 +895,8 @@ function mergeConfig(cloud,local){
   return {projects:projects,people:people,rev:CONFIG_REV};
 }
 /* ------------------------------ الحالة الحالية للواجهة ------------------------------ */
-var ui={page:"entry",currentId:null,openId:null,filterStatus:"",dirtyIpc:false,person:"",anType:""};
+var ui={page:"entry",currentId:null,openId:null,filterStatus:"",dirtyIpc:false,person:"",anType:"",
+        anOpen:readJSON(LS_AN)===true};
 
 /* ------------------------------ العمود الأيمن ------------------------------ */
 function renderSaved(){
@@ -1168,11 +1171,7 @@ function renderSummary(){
     tr.appendChild(t5);
     tr.appendChild(el("td","num",lv?fmtDate(lv.date):"—"));
     tr.appendChild(el("td",null,lv?lv.person:"—"));
-    var lateD=lv?lateDaysOf(lv):0;
-    var t8=el("td","co"+(lateD?" warn":""));
-    t8.appendChild(document.createTextNode(lv?sinceText(lv.date):"—"));
-    if(lateD){ t8.appendChild(lateTag(lateD)); t8.title="تجاوز حدّ مرحلة «"+st(lv.status).label+"» ("+limitFor(lv.status)+" يوم)"; }
-    tr.appendChild(t8);
+    tr.appendChild(el("td","co",lv?sinceText(lv.date):"—"));
     function toggle(){ui.openId=(ui.openId===rec.id)?null:rec.id;renderSummary();}
     tr.addEventListener("click",toggle);
     tr.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();toggle();}});
@@ -1219,26 +1218,6 @@ function detailRow(rec){
 /* المقاييس كلها مشتقّة من تواريخ المراحل المسجّلة، بلا حقول إضافية. */
 /* «اكتمل» تقفل دورة المستخلص، فلا مدة تُحسب لها ولو سُجِّلت بعدها عملية */
 var CLOSING_STATUS="done";
-/* حد المرحلة بالأيام. و«اكتمل» لا حدّ لها إذ تقفل دورة المستخلص. */
-function limitFor(key){
-  if(!key||key===CLOSING_STATUS)return 0;
-  return DEFAULT_LIMITS[key]||0;
-}
-/* كم يوماً تجاوز المستخلص حدّ مرحلته الحالية (0 = غير متأخر) */
-function lateDaysOf(lv){
-  if(!lv)return 0;
-  var lim=limitFor(lv.status); if(!lim)return 0;
-  var w=daysBetween(lv.date,todayISO());
-  return (isNaN(w)||w<=lim)?0:(w-lim);
-}
-/* صيغة الأيام بالعربية: يوم، يومان، 5 أيام، 25 يوماً */
-function daysAr(n){
-  if(n===1)return "يوم";
-  if(n===2)return "يومان";
-  return n+(n<11?" أيام":" يوماً");
-}
-/* وسم «متأخر …» */
-function lateTag(d){ return el("span","late-tag","متأخر "+daysAr(d)); }
 function timesAr(n){ return n===1?"مرة واحدة":(n===2?"مرتان":n+" مرات"); }
 function firstOf(evs,key){for(var i=0;i<evs.length;i++){if(evs[i].status===key)return evs[i];}return null;}
 
@@ -1251,7 +1230,6 @@ function recStats(rec){
     start:first.date, last:last, approved:!!appr,
     total: appr?daysBetween(first.date,appr.date):null,
     waiting: appr?null:Math.max(0,daysBetween(last.date,todayISO())),
-    lateDays: appr?0:lateDaysOf(last),
     returns: evs.filter(function(e){return e.status==="returned";}).length
   };
 }
@@ -1288,7 +1266,6 @@ function anAggregate(ms){
     count:ms.length,
     approved:done.length,
     open:ms.length-done.length,
-    late:ms.filter(function(m){return m.lateDays>0;}).length,
     avgTotal:avg(done.map(function(m){return m.total;})),
     returnsTotal:rt,
     /* الترجيعات لكل 10 مستخلصات: الكسر الصغير (0.2) لا يُقرأ، والضرب في 10 يجعله عدداً مفهوماً */
@@ -1324,8 +1301,17 @@ function renderTypeSeg(){
   Array.prototype.forEach.call($("aType").querySelectorAll(".seg-btn"),function(b){
     b.setAttribute("aria-pressed",String(ui.anType===b.getAttribute("data-v")));});
 }
+/* كتلة التحليل مطويّة حتى يطلبها المستخدم، فلا تطول الصفحة بلا داعٍ */
+function renderAnToggle(){
+  $("anBlock").hidden=!ui.anOpen;
+  var b=$("btnAnToggle");
+  b.textContent=ui.anOpen?"إخفاء التحليل ▴":"إظهار التحليل ▾";
+  b.setAttribute("aria-expanded",String(ui.anOpen));
+}
 function renderAnalytics(){
   if(ui.page!=="summary")return;
+  renderAnToggle();
+  if(!ui.anOpen)return;
   renderTypeSeg();
   var ms=anRecords(), g=anAggregate(ms);
   $("anMeta").textContent=ms.length?("عن الـ"+ms.length+" مستخلص المعروضة أعلاه"):"";
@@ -1334,7 +1320,6 @@ function renderAnalytics(){
   /* --- بطاقات الأرقام --- */
   var box=$("anKpis");box.textContent="";
   [["متوسط مدة الإنجاز",num(g.avgTotal," يوم"),"للمكتملة فقط: الأيام من أول مرحلة إلى «اكتمل»"],
-   ["متأخرة الآن",String(g.late),"مستخلصات جارية تجاوزت الحد المعتاد لمرحلتها: استلام 3 أيام، مراجعة 7، رجعت 5، موارد 5، اعتماد 7"],
    ["نسبة المرتجعة",g.returnedShare==null?"—":Math.round(g.returnedShare)+"%","حصة المستخلصات التي رجعت للاستشاري مرة على الأقل"],
    ["مرات الترجيع لكل 10",g.returnsPer10==null?"—":num(g.returnsPer10),"إجمالي مرات الترجيع ÷ عدد المستخلصات × 10"]
   ].forEach(function(d){
@@ -1369,7 +1354,6 @@ function renderAnalytics(){
       {k:"عدد المستخلصات", a:A.count, b:B.count, fmt:"int"},
       {k:"مكتملة", a:A.approved, b:B.approved, fmt:"int"},
       {k:"جارية", a:A.open, b:B.open, fmt:"int"},
-      {k:"متأخرة الآن", a:A.late, b:B.late, fmt:"int"},
       {k:"متوسط مدة الإنجاز", a:A.avgTotal, b:B.avgTotal, fmt:"days"},
       {k:"نسبة المرتجعة", a:A.returnedShare, b:B.returnedShare, fmt:"pct"},
       {k:"مرات الترجيع لكل 10 مستخلصات", a:A.returnsPer10, b:B.returnsPer10, fmt:"num"}
@@ -1402,10 +1386,9 @@ function renderAnalytics(){
   ms.forEach(function(m){
     if(m.approved)return;
     var who=m.last.person||"—";
-    var h=holds[who]||(holds[who]={n:0,oldest:0,late:0});
+    var h=holds[who]||(holds[who]={n:0,oldest:0});
     h.n++;
     if(m.waiting>h.oldest)h.oldest=m.waiting;
-    if(m.lateDays>0)h.late++;
   });
   var pb=$("anPeopleBody");pb.textContent="";
   var names=Object.keys(byPerson).sort(function(a,b){
@@ -1422,13 +1405,11 @@ function renderAnalytics(){
   if(!names.length){
     var tr0=el("tr"),td0=el("td","empty","لا توجد بيانات كافية.");td0.colSpan=5;tr0.appendChild(td0);pb.appendChild(tr0);
   } else names.forEach(function(n){
-    var a=byPerson[n],h=holds[n]||{n:0,oldest:0,late:0},tr=el("tr","ipc");
+    var a=byPerson[n],h=holds[n]||{n:0,oldest:0},tr=el("tr","ipc");
     tr.setAttribute("role","button");tr.setAttribute("tabindex","0");
     tr.title="عرض مستخلصات "+n+" وتفاصيلها";
     tr.appendChild(el("td",null,n));
-    var tdH=el("td","num"+(h.late?" warn":""),String(h.n));
-    if(h.late)tdH.title="منها "+h.late+" متأخرة عن حدّ مرحلتها";
-    tr.appendChild(tdH);
+    tr.appendChild(el("td","num",String(h.n)));
     tr.appendChild(h.n?daysCell(h.oldest):el("td","num","—"));
     tr.appendChild(daysCell(avg(a.days)));
     tr.appendChild(el("td","num",String(a.n)));
@@ -1464,9 +1445,9 @@ function renderAnalytics(){
       cols.forEach(function(x){
         var a=mtx[n][x.key];
         if(!a||!a.length){ tr.appendChild(el("td","num","—")); return; }
-        var v=avg(a), lim=limitFor(x.key);
-        var td=el("td","num"+(lim&&v>lim?" warn":""),String(Math.round(v*10)/10));
-        td.title=x.label+": "+a.length+" مرة"+(lim?" — حدّ المرحلة "+lim+" يوم":"");
+        var v=avg(a);
+        var td=el("td","num",String(Math.round(v*10)/10));
+        td.title=x.label+": "+a.length+" مرة";
         tr.appendChild(td);
       });
       mb.appendChild(tr);
@@ -1485,9 +1466,7 @@ function renderAnalytics(){
     tr.appendChild(el("td","num",m.rec.ipcNo));
     var td=el("td");td.appendChild(el("span","pill "+sInfo.cls,sInfo.label));tr.appendChild(td);
     tr.appendChild(el("td",null,m.last.person||"—"));
-    var tdW=daysCell(m.waiting);
-    if(m.lateDays>0){ tdW.className="end warn"; tdW.appendChild(lateTag(m.lateDays)); }
-    tr.appendChild(tdW);
+    tr.appendChild(daysCell(m.waiting));
     kb.appendChild(tr);
   });
 }
@@ -1495,9 +1474,10 @@ function renderAnalytics(){
 
 /* ------------------------------ أداء مسؤول واحد ------------------------------ */
 /* التنفيذ = الأيام من تسجيل المرحلة السابقة إلى تسجيله هو للمرحلة.
-   أول مرحلة في المستخلص لا مدة لها إذ لا مرحلة قبلها. */
+   أول مرحلة في المستخلص لا مدة لها إذ لا مرحلة قبلها، و«اكتمل»
+   تسجيل ختامي لا عمل تحته فلا مدة تُحسب له. */
 function execDays(evs,i){
-  if(i<1)return null;
+  if(i<1||evs[i].status===CLOSING_STATUS)return null;
   var d=daysBetween(evs[i-1].date,evs[i].date);
   return (isNaN(d)||d<0)?null:d;
 }
@@ -1566,7 +1546,6 @@ function personIpcBlock(en,who){
     meta.appendChild(document.createTextNode(" · واقف منذ "));
     meta.appendChild(el("span","num",String(m.waiting)));
     meta.appendChild(document.createTextNode(" يوم"));
-    if(m.lateDays>0)meta.appendChild(lateTag(m.lateDays));
   }
   box.appendChild(meta);
 
@@ -1891,6 +1870,12 @@ function wire(){
       ui.anType=(ui.anType===v)?"":v;
       renderTypeSeg();renderPage();
     });
+  });
+  $("btnAnToggle").addEventListener("click",function(){
+    ui.anOpen=!ui.anOpen;
+    writeJSON(LS_AN,ui.anOpen);
+    renderAnalytics();
+    if(ui.anOpen)$("anBlock").scrollIntoView({block:"start"});
   });
   $("btnPdfStats").addEventListener("click",function(){exportPdfView("anBlock","ipc-analytics.pdf");});
   $("btnPnBack").addEventListener("click",function(){showPage("summary");renderPage();});
