@@ -53,8 +53,9 @@ h1,h2,h3,.ttl{font-family:"Cairo","IBM Plex Sans Arabic",system-ui,sans-serif;te
 .num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 /* داخل الجداول تحاذي الأرقام نهاية الخلية لتقع تحت رأس العمود العربي */
 th.num,td.num{text-align:end}
-/* رأس عمود عربي فوق أرقام: المحاذاة وحدها، بلا خط الأرقام الذي يفصل الحروف */
-th.end{text-align:end}
+/* رأس العمود (وخلية الأيام) فوق أرقام: المحاذاة وحدها،
+   بلا خط الأرقام الذي يفصل حروف العربية */
+th.end,td.end{text-align:end}
 /* تسميات مراحل صفحة المسؤول أطول (تحمل عدد المرات) فتحتاج خانة أوسع */
 #pnStages .bar-row{grid-template-columns:minmax(96px,200px) minmax(0,1fr) 64px}
 
@@ -236,13 +237,10 @@ tr.detail > td{background:var(--surface-2);padding:0}
 .filters .field{min-width:150px}
 .filters .field.wide{flex:1;min-width:200px}
 .filters .spacer{margin-inline-start:auto}
-/* زر الرسم في جدول المقارنة */
-.cmpbtn{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:7px;
-  padding:4px 10px;font:inherit;font-size:11.5px;font-weight:600;line-height:1.5;cursor:pointer;white-space:nowrap}
-.cmpbtn:hover{border-color:var(--accent);color:var(--accent)}
-.cmpbtn[aria-expanded="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.chartbox{padding:14px 16px}
-.chartbox .cmp-ttl{font-size:12.5px;font-weight:600;color:var(--ink-2);margin:0 0 10px}
+/* مجموعات أشرطة المقارنة فوق الجدول */
+.cmp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px 26px}
+.cmp-group{min-width:0}
+.cmp-group h3{font-size:12.5px;font-weight:600;color:var(--ink-2);margin:0 0 8px}
 /* صفحة المسؤول */
 .ipc-block{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:12px}
 .ipc-block:last-child{margin-bottom:0}
@@ -265,7 +263,7 @@ td.warn{background:var(--danger-soft)}
 .limits input{text-align:center}
 /* التقاط صفحة التحليل إلى PDF: html2canvas لا يتعامل مع النص المتباعد
    ولا الرؤوس اللاصقة، فتُحيَّد أثناء التصدير فقط. */
-.pdfshot .filters,.pdfshot .cmpbtn,.pdfshot .actions,.pdfshot .ui-only{display:none !important}
+.pdfshot .filters,.pdfshot .actions,.pdfshot .ui-only{display:none !important}
 .pdfshot th,.pdfshot td{letter-spacing:normal;text-transform:none;position:static}
 .pdfshot .tablewrap{overflow:visible}
 .pdfshot table{min-width:0}
@@ -403,7 +401,7 @@ td.warn{background:var(--danger-soft)}
           </div>
           <div class="tablewrap">
             <table>
-              <thead><tr><th>#</th><th>المرحلة</th><th>التاريخ</th><th>المسؤول</th><th>الملاحظة</th><th></th></tr></thead>
+              <thead><tr><th class="end">#</th><th>المرحلة</th><th class="end">التاريخ</th><th>المسؤول</th><th>الملاحظة</th><th></th></tr></thead>
               <tbody id="historyBody"></tbody>
             </table>
           </div>
@@ -431,8 +429,8 @@ td.warn{background:var(--danger-soft)}
           <div class="tablewrap">
             <table>
               <thead><tr>
-                <th>المشروع</th><th>الشركة</th><th>المستخلص</th><th>المسار</th><th>الترجيع</th>
-                <th>الحالة الحالية</th><th>التاريخ</th><th>المسؤول</th><th>منذ</th>
+                <th>المشروع</th><th>الشركة</th><th class="end">المستخلص</th><th>المسار</th><th>الترجيع</th>
+                <th>الحالة الحالية</th><th class="end">التاريخ</th><th>المسؤول</th><th>منذ</th>
               </tr></thead>
               <tbody id="summaryBody"></tbody>
             </table>
@@ -487,42 +485,20 @@ td.warn{background:var(--danger-soft)}
           <div class="bars" id="anStages"></div>
         </section>
 
-        <section class="card" id="anTrendCard">
-          <div class="head">
-            <h2 class="ttl">الاتجاه شهراً بشهر</h2>
-            <span class="hint">متوسط مدة الإنجاز حسب شهر الاكتمال</span>
-          </div>
-          <div class="bars" id="anTrend"></div>
-        </section>
-
         <section class="card" id="anCompareCard">
           <div class="head">
             <h2 class="ttl">مقاول مقابل استشاري</h2>
-            <span class="hint ui-only">اضغط «رسم» في أي صف لعرضه بيانياً</span>
+            <span class="hint">كل مقياس بمقياسه الخاص</span>
           </div>
           <div class="legend">
             <span><i style="background:var(--c-mqawil)"></i>مقاول</span>
             <span><i style="background:var(--c-istishari)"></i>استشاري</span>
           </div>
-          <div class="tablewrap">
+          <div class="cmp-grid" id="anCompare"></div>
+          <div class="tablewrap" style="margin-top:14px">
             <table>
-              <thead><tr><th>المقياس</th><th class="end">مقاول</th><th class="end">استشاري</th><th>الرسم</th></tr></thead>
+              <thead><tr><th>المقياس</th><th class="end">مقاول</th><th class="end">استشاري</th></tr></thead>
               <tbody id="anCompareBody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="card" id="anProjectsCard">
-          <div class="head">
-            <h2 class="ttl">المشاريع مقابل بعضها</h2>
-            <span class="hint">مرتّبة بالأبطأ إنجازاً</span>
-          </div>
-          <div class="tablewrap">
-            <table>
-              <thead><tr><th>المشروع</th><th>الشركة</th><th>الجهة</th><th class="end">المستخلصات</th>
-                <th class="end">مكتملة</th><th class="end">متوسط الإنجاز</th><th class="end">الترجيعات</th>
-                <th class="end">متأخرة الآن</th></tr></thead>
-              <tbody id="anProjectsBody"></tbody>
             </table>
           </div>
         </section>
@@ -534,7 +510,7 @@ td.warn{background:var(--danger-soft)}
           </div>
           <div class="tablewrap">
             <table>
-              <thead><tr><th>المشروع</th><th>المستخلص</th><th>الحالة الحالية</th><th>المسؤول</th><th>أيام الانتظار</th></tr></thead>
+              <thead><tr><th>المشروع</th><th class="end">المستخلص</th><th>الحالة الحالية</th><th>المسؤول</th><th class="end">أيام الانتظار</th></tr></thead>
               <tbody id="anStuckBody"></tbody>
             </table>
           </div>
@@ -918,8 +894,7 @@ function mergeConfig(cloud,local){
   return {projects:projects,people:people,limits:cloud.limits||local.limits||null,rev:CONFIG_REV};
 }
 /* ------------------------------ الحالة الحالية للواجهة ------------------------------ */
-var ui={page:"entry",currentId:null,openId:null,filterStatus:"",dirtyIpc:false,
-        openMetric:null,person:""};
+var ui={page:"entry",currentId:null,openId:null,filterStatus:"",dirtyIpc:false,person:""};
 
 /* ------------------------------ العمود الأيمن ------------------------------ */
 function renderSaved(){
@@ -1298,7 +1273,7 @@ function avg(a){if(!a.length)return null;var t=0;for(var i=0;i<a.length;i++)t+=a
 function num(v,d){ return v==null?"—":(Math.round(v*10)/10)+(d||""); }
 /* خلية أيام: الرقم وحده بخط الأرقام، والوحدة نص عربي — حتى لا ينقلب ترتيبها */
 function daysCell(v){
-  var td=el("td");
+  var td=el("td","end");
   if(v==null){ td.textContent="—"; return td; }
   td.appendChild(el("span","num",String(Math.round(v*10)/10)));
   td.appendChild(document.createTextNode(" يوم"));
@@ -1415,27 +1390,6 @@ function renderAnalytics(){
     sbox.appendChild(el("p","an-note","العدد بين قوسين في التلميح هو عدد الانتقالات المقيسة، لا عدد المستخلصات."));
   }
 
-  /* --- الاتجاه شهراً بشهر: متوسط الإنجاز حسب شهر الاكتمال --- */
-  var byMonth={};
-  ms.forEach(function(m){
-    if(!m.approved||m.total==null)return;
-    var dn=firstOf(m.evs,CLOSING_STATUS); if(!dn)return;
-    var k=String(dn.date).slice(0,7);
-    (byMonth[k]=byMonth[k]||[]).push(m.total);
-  });
-  var mk=Object.keys(byMonth).sort().slice(-12);
-  var tbox=$("anTrend");tbox.textContent="";
-  if(!mk.length){
-    tbox.appendChild(el("p","an-note","لا توجد مستخلصات مكتملة بعد ضمن المُرشِّحات، فلا اتجاه يُرسم."));
-  } else {
-    var tmx=Math.max.apply(null,mk.map(function(k){return avg(byMonth[k]);}));
-    mk.forEach(function(k){
-      var v=avg(byMonth[k]), parts=k.split("-");
-      tbox.appendChild(barRow(parts[1]+"/"+parts[0]+" ("+byMonth[k].length+")",v,tmx,null,num(v)+" يوم"));
-    });
-    tbox.appendChild(el("p","an-note","الرقم بين قوسين عدد المستخلصات التي اكتملت في ذلك الشهر. آخر 12 شهراً فيها اكتمال."));
-  }
-
   /* --- مقاول مقابل استشاري --- */
   var showCmp = !$("aType").value;
   $("anCompareCard").hidden=!showCmp;
@@ -1451,52 +1405,26 @@ function renderAnalytics(){
       {k:"نسبة المرتجعة", a:A.returnedShare, b:B.returnedShare, fmt:"pct"},
       {k:"مرات الترجيع لكل 10 مستخلصات", a:A.returnsPer10, b:B.returnsPer10, fmt:"num"}
     ];
+    /* أشرطة المقاييس المتدرّجة فوق الجدول، كل مقياس بمقياسه الخاص */
+    var cb=$("anCompare");cb.textContent="";
+    metrics.filter(function(m){return m.fmt!=="int";}).forEach(function(m){
+      var grp=el("div","cmp-group");
+      grp.appendChild(el("h3",null,m.k));
+      var bars=el("div","bars");
+      var mx2=Math.max(m.a||0,m.b||0);
+      bars.appendChild(barRow("مقاول",m.a||0,mx2,"var(--c-mqawil)",cmpText(m.a,m.fmt)));
+      bars.appendChild(barRow("استشاري",m.b||0,mx2,"var(--c-istishari)",cmpText(m.b,m.fmt)));
+      grp.appendChild(bars);cb.appendChild(grp);
+    });
     var tb=$("anCompareBody");tb.textContent="";
-    metrics.forEach(function(m,i){
-      var open=(ui.openMetric===i);
+    metrics.forEach(function(m){
       var tr=el("tr");
       tr.appendChild(el("td",null,m.k));
       if(m.fmt==="days"){ tr.appendChild(daysCell(m.a)); tr.appendChild(daysCell(m.b)); }
       else { tr.appendChild(el("td","num",cmpText(m.a,m.fmt))); tr.appendChild(el("td","num",cmpText(m.b,m.fmt))); }
-      var tdb=el("td");
-      var b=el("button","cmpbtn",open?"إخفاء":"رسم");b.type="button";
-      b.setAttribute("aria-expanded",String(open));
-      b.title=(open?"إخفاء رسم ":"عرض رسم ")+m.k;
-      b.addEventListener("click",function(){ ui.openMetric=open?null:i; renderAnalytics(); });
-      tdb.appendChild(b);tr.appendChild(tdb);
       tb.appendChild(tr);
-      if(open)tb.appendChild(cmpChartRow(m));
     });
   }
-
-  /* --- المشاريع مقابل بعضها --- */
-  var byProj={};
-  ms.forEach(function(m){ (byProj[m.rec.project]=byProj[m.rec.project]||[]).push(m); });
-  var pnames=Object.keys(byProj).map(function(k){
-    var g2=anAggregate(byProj[k]);
-    return {name:k, company:byProj[k][0].rec.company, type:byProj[k][0].type, g:g2};
-  }).sort(function(a,b){
-    var x=a.g.avgTotal, y=b.g.avgTotal;
-    if(x==null&&y==null)return b.g.count-a.g.count;
-    if(x==null)return 1;
-    if(y==null)return -1;
-    return y-x;
-  });
-  var prb=$("anProjectsBody");prb.textContent="";
-  if(!pnames.length){
-    var tr2=el("tr"),td2=el("td","empty","لا توجد مشاريع ضمن المُرشِّحات.");td2.colSpan=8;tr2.appendChild(td2);prb.appendChild(tr2);
-  } else pnames.forEach(function(r){
-    var tr=el("tr");
-    tr.appendChild(el("td","proj",r.name));
-    tr.appendChild(el("td","co",r.company||"—"));
-    tr.appendChild(el("td",null,r.type||"—"));
-    tr.appendChild(el("td","num",String(r.g.count)));
-    tr.appendChild(el("td","num",String(r.g.approved)));
-    tr.appendChild(daysCell(r.g.avgTotal));
-    tr.appendChild(el("td","num",String(r.g.returnsTotal)));
-    tr.appendChild(el("td","num"+(r.g.late?" warn":""),String(r.g.late)));
-    prb.appendChild(tr);
-  });
 
   /* --- أداء المسؤولين: ما عنده الآن، ومتوسط تنفيذه --- */
   var byPerson=personTotals(ms);
@@ -1589,26 +1517,12 @@ function renderAnalytics(){
     var td=el("td");td.appendChild(el("span","pill "+sInfo.cls,sInfo.label));tr.appendChild(td);
     tr.appendChild(el("td",null,m.last.person||"—"));
     var tdW=daysCell(m.waiting);
-    if(m.lateDays>0){ tdW.className="warn"; tdW.appendChild(lateTag(m.lateDays)); }
+    if(m.lateDays>0){ tdW.className="end warn"; tdW.appendChild(lateTag(m.lateDays)); }
     tr.appendChild(tdW);
     kb.appendChild(tr);
   });
 }
 
-
-/* صف الرسم تحت صف المقياس في جدول «مقاول مقابل استشاري» */
-function cmpChartRow(m){
-  var tr=el("tr","detail"),td=el("td");td.colSpan=4;
-  var wrap=el("div","chartbox");
-  wrap.appendChild(el("h3","cmp-ttl",m.k));
-  var bars=el("div","bars");
-  var mx=Math.max(m.a||0,m.b||0);
-  bars.appendChild(barRow("مقاول",m.a||0,mx,"var(--c-mqawil)",cmpText(m.a,m.fmt)));
-  bars.appendChild(barRow("استشاري",m.b||0,mx,"var(--c-istishari)",cmpText(m.b,m.fmt)));
-  wrap.appendChild(bars);
-  td.appendChild(wrap);tr.appendChild(td);
-  return tr;
-}
 
 /* ------------------------------ أداء مسؤول واحد ------------------------------ */
 /* التنفيذ = الأيام من تسجيل المرحلة السابقة إلى تسجيله هو للمرحلة.
@@ -1690,7 +1604,7 @@ function personIpcBlock(en,who){
   var tw=el("div","tablewrap"),tbl=el("table");
   var thead=el("thead"),trh=el("tr");
   ["المرحلة","التاريخ","المسؤول","أيام التنفيذ","الملاحظة"].forEach(function(h){
-    trh.appendChild(el("th",h==="أيام التنفيذ"?"end":null,h));});
+    trh.appendChild(el("th",(h==="التاريخ"||h==="أيام التنفيذ")?"end":null,h));});
   thead.appendChild(trh);tbl.appendChild(thead);
   var tb=el("tbody");
   m.evs.forEach(function(e,i){
@@ -2002,7 +1916,7 @@ function wire(){
   $("tabSummary").addEventListener("click",function(){showPage("summary");renderStats();renderSummary();});
   $("tabStats").addEventListener("click",function(){showPage("stats");renderAnalytics();});
   ["aType","aPerson"].forEach(function(id){
-    $(id).addEventListener("change",function(){ui.openMetric=null;renderAnalytics();});});
+    $(id).addEventListener("change",renderAnalytics);});
   $("btnPdfStats").addEventListener("click",function(){exportPdfView("pageStats","ipc-analytics.pdf");});
   $("btnPnBack").addEventListener("click",function(){showPage("stats");renderAnalytics();});
   $("btnPnPdf").addEventListener("click",function(){
