@@ -239,6 +239,12 @@ tr.detail > td{background:var(--surface-2);padding:0}
 .filters .field{min-width:150px}
 .filters .field.wide{flex:1;min-width:200px}
 .filters .spacer{margin-inline-start:auto}
+/* خانتا نوع الجهة: اضغط للتحديد، واضغط ثانية للعودة إلى الكل */
+.seg{display:flex;gap:6px}
+.seg-btn{font:inherit;font-weight:600;font-size:13px;color:var(--ink-2);background:var(--surface);
+  border:1px solid var(--line);border-radius:8px;padding:9px 16px;cursor:pointer;white-space:nowrap}
+.seg-btn:hover{border-color:var(--accent-2);color:var(--accent)}
+.seg-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 /* مجموعات أشرطة المقارنة فوق الجدول */
 .cmp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px 26px}
 .cmp-group{min-width:0}
@@ -259,10 +265,6 @@ tr.mine td{background:var(--accent-soft)}
   border-radius:20px;padding:1px 8px;font-size:11px;font-weight:600;white-space:nowrap;margin-inline-start:6px}
 td.warn{background:var(--danger-soft)}
 .retn{color:var(--s3-fg);font-weight:600;white-space:nowrap}
-/* حدود التأخر */
-.limits{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 12px;margin-top:10px}
-.limits .field > label{font-size:11.5px}
-.limits input{text-align:center}
 /* التقاط صفحة التحليل إلى PDF: html2canvas لا يتعامل مع النص المتباعد
    ولا الرؤوس اللاصقة، فتُحيَّد أثناء التصدير فقط. */
 .pdfshot .filters,.pdfshot .actions,.pdfshot .ui-only{display:none !important}
@@ -448,8 +450,11 @@ td.warn{background:var(--danger-soft)}
             <span class="hint" id="anMeta"></span>
           </div>
           <div class="filters">
-            <div class="field"><label for="aType">نوع الجهة</label>
-              <select id="aType"><option value="">الكل</option><option value="مقاول">مقاول</option><option value="استشاري">استشاري</option></select></div>
+            <div class="field"><label id="aTypeLbl">نوع الجهة</label>
+              <div class="seg" id="aType" role="group" aria-labelledby="aTypeLbl">
+                <button type="button" class="seg-btn" data-v="مقاول" aria-pressed="false">مقاول</button>
+                <button type="button" class="seg-btn" data-v="استشاري" aria-pressed="false">استشاري</button>
+              </div></div>
             <div class="field"><label for="aPerson">المسؤول</label><select id="aPerson"></select></div>
             <span class="spacer"></span>
             <button class="btn small" id="btnPdfStats">تصدير PDF</button>
@@ -466,16 +471,11 @@ td.warn{background:var(--danger-soft)}
                   <tr><td>نسبة المرتجعة</td><td>حصة المستخلصات التي مرّت بمرحلة «رجعت للاستشاري للتعديل» مرة واحدة على الأقل.</td></tr>
                   <tr><td>متوسط الأيام في كل مرحلة</td><td>من تاريخ تسجيل المرحلة إلى تاريخ تسجيل المرحلة التي تليها. و«اكتمل» مرحلة ختامية تقفل دورة المستخلص، فلا تُحسب لها مدة.</td></tr>
                   <tr><td>مرات الترجيع لكل 10 مستخلصات</td><td>إجمالي مرات «رجعت للاستشاري للتعديل» ÷ عدد المستخلصات × 10 — ليُقرأ عدداً مفهوماً بدل كسر صغير.</td></tr>
-                  <tr><td>متأخرة الآن</td><td>مستخلصات جارية بقيت في مرحلتها الحالية أكثر من حدّ تلك المرحلة. الحدود تُضبط من «حدود التأخر لكل مرحلة» أدناه.</td></tr>
+                  <tr><td>متأخرة الآن</td><td>مستخلصات جارية بقيت في مرحلتها الحالية أكثر من الحد المعتاد لها: الاستلام 3 أيام، المراجعة 7، رجعت للاستشاري 5، تسجيل بموارد 5، تسجيل باعتماد 7.</td></tr>
                   <tr><td>متوسط التنفيذ</td><td>للشخص: عدد الأيام بين تسجيل المرحلة السابقة وتسجيله هو للمرحلة — أي المدة التي بقي فيها العمل في يده. ولا تُحسب له أول مرحلة في المستخلص إذ لا مرحلة قبلها.</td></tr>
                 </tbody>
               </table>
             </div>
-          </details>
-          <details class="manage">
-            <summary>حدود التأخر لكل مرحلة</summary>
-            <div class="limits" id="anLimits"></div>
-            <p class="hint" style="margin:10px 0 0">إن بقي المستخلص في مرحلة أكثر من حدّها، ظهر «متأخر» بالأحمر في الملخص وفي «الأطول انتظاراً»، وحُسب في بطاقة «متأخرة الآن». الحدود تُحفظ مع إعدادات النظام ويراها الفريق كله.</p>
           </details>
         </section>
 
@@ -604,7 +604,7 @@ var STATUSES=[
   {key:"done",    label:"اكتمل",                    short:"اكتمل",     step:5, cls:"s6"}
 ];
 var NEXT_STATUS={receive:"review",review:"mawared",returned:"review",mawared:"etimad",etimad:"done",done:"done"};
-/* حد الأيام المقبول في كل مرحلة قبل أن يُعدّ المستخلص متأخراً — يعدّله المستخدم */
+/* حد الأيام المقبول في كل مرحلة قبل أن يُعدّ المستخلص متأخراً */
 var DEFAULT_LIMITS={receive:3,review:7,returned:5,mawared:5,etimad:7};
 var STEPS=5;
 function sortedPeople(){return store.config.people.slice().sort(function(a,b){
@@ -678,7 +678,7 @@ function migrateConfig(cfg){
   SEED_PROJECTS.forEach(function(sp){
     if(!projects.some(function(q){return q.name===sp.name;}))projects.push(sp);
   });
-  return {projects:projects,people:cfg.people,limits:cfg.limits||null,rev:CONFIG_REV};
+  return {projects:projects,people:cfg.people,rev:CONFIG_REV};
 }
 var store={
   mode:"pending",            /* pending | local | cloud */
@@ -893,10 +893,10 @@ function mergeConfig(cloud,local){
   (local.people||[]).forEach(function(n){
     if(n&&!people.some(function(m){return String(m).toLowerCase()===String(n).toLowerCase();})) people.push(n);
   });
-  return {projects:projects,people:people,limits:cloud.limits||local.limits||null,rev:CONFIG_REV};
+  return {projects:projects,people:people,rev:CONFIG_REV};
 }
 /* ------------------------------ الحالة الحالية للواجهة ------------------------------ */
-var ui={page:"entry",currentId:null,openId:null,filterStatus:"",dirtyIpc:false,person:""};
+var ui={page:"entry",currentId:null,openId:null,filterStatus:"",dirtyIpc:false,person:"",anType:""};
 
 /* ------------------------------ العمود الأيمن ------------------------------ */
 function renderSaved(){
@@ -1222,12 +1222,9 @@ function detailRow(rec){
 /* المقاييس كلها مشتقّة من تواريخ المراحل المسجّلة، بلا حقول إضافية. */
 /* «اكتمل» تقفل دورة المستخلص، فلا مدة تُحسب لها ولو سُجِّلت بعدها عملية */
 var CLOSING_STATUS="done";
-/* حد المرحلة بالأيام: ما ضبطه المستخدم، وإلا الافتراضي. و«اكتمل» لا حدّ لها. */
+/* حد المرحلة بالأيام. و«اكتمل» لا حدّ لها إذ تقفل دورة المستخلص. */
 function limitFor(key){
   if(!key||key===CLOSING_STATUS)return 0;
-  var l=(store.config&&store.config.limits)||{};
-  var v=parseInt(l[key],10);
-  if(isFinite(v)&&v>0)return v;
   return DEFAULT_LIMITS[key]||0;
 }
 /* كم يوماً تجاوز المستخلص حدّ مرحلته الحالية (0 = غير متأخر) */
@@ -1284,7 +1281,7 @@ function daysCell(v){
 
 /* المستخلصات بعد تطبيق مُرشِّحات صفحة التحليلات */
 function anRecords(){
-  var t=$("aType").value, per=$("aPerson").value;
+  var t=ui.anType, per=$("aPerson").value;
   return store.ipcs.map(recStats).filter(function(m){
     if(!m)return false;
     if(t&&m.type!==t)return false;
@@ -1331,33 +1328,14 @@ function barRow(label,value,max,color,text){
   row.appendChild(el("div","val",text));
   return row;
 }
-/* محرّر حدود التأخر: يُبنى مرة واحدة ثم تُحدَّث قيمه، كي لا يقفز المؤشر أثناء الكتابة */
-function renderLimits(){
-  var box=$("anLimits");
-  var stages=STATUSES.filter(function(x){return x.key!==CLOSING_STATUS;});
-  if(!box.childElementCount){
-    stages.forEach(function(x){
-      var f=el("div","field");
-      var lab=el("label",null,x.label);lab.setAttribute("for","lim-"+x.key);
-      var inp=el("input");inp.id="lim-"+x.key;inp.type="number";inp.min="1";inp.step="1";inp.className="num";
-      inp.addEventListener("change",function(){
-        var v=parseInt(inp.value,10);
-        var l={};
-        var cur=store.config.limits||{};
-        Object.keys(cur).forEach(function(k){l[k]=cur[k];});
-        if(isFinite(v)&&v>0)l[x.key]=v; else delete l[x.key];
-        store.config.limits=l;
-        saveConfig();
-        toast("تم حفظ حدّ مرحلة "+x.label+".");
-      });
-      f.appendChild(lab);f.appendChild(inp);box.appendChild(f);
-    });
-  }
-  stages.forEach(function(x){ $("lim-"+x.key).value=limitFor(x.key); });
+/* إبراز الخانة المحدَّدة من نوع الجهة */
+function renderTypeSeg(){
+  Array.prototype.forEach.call($("aType").querySelectorAll(".seg-btn"),function(b){
+    b.setAttribute("aria-pressed",String(ui.anType===b.getAttribute("data-v")));});
 }
 function renderAnalytics(){
   if(ui.page!=="stats")return;
-  renderLimits();
+  renderTypeSeg();
   var ms=anRecords(), g=anAggregate(ms);
   $("anMeta").textContent=ms.length?(ms.length+" مستخلص ضمن المُرشِّحات"):"";
   $("anEmpty").hidden=!!ms.length;
@@ -1368,7 +1346,7 @@ function renderAnalytics(){
    ["مكتملة",String(g.approved),"وصلت إلى مرحلة «اكتمل»"],
    ["جارية",String(g.open),"لم تصل إلى «اكتمل» بعد — ومنها ما سُجِّل باعتماد وينتظر الاكتمال"],
    ["متوسط مدة الإنجاز",num(g.avgTotal," يوم"),"للمكتملة فقط: الأيام من أول مرحلة إلى «اكتمل»"],
-   ["متأخرة الآن",String(g.late),"مستخلصات جارية تجاوزت حدّ مرحلتها الحالية — الحدود تُضبط من «حدود التأخر لكل مرحلة»"],
+   ["متأخرة الآن",String(g.late),"مستخلصات جارية تجاوزت الحد المعتاد لمرحلتها: استلام 3 أيام، مراجعة 7، رجعت 5، موارد 5، اعتماد 7"],
    ["نسبة المرتجعة",g.returnedShare==null?"—":Math.round(g.returnedShare)+"%","حصة المستخلصات التي رجعت للاستشاري مرة على الأقل"]
   ].forEach(function(d){
     var c=el("div","stat");
@@ -1393,7 +1371,7 @@ function renderAnalytics(){
   }
 
   /* --- مقاول مقابل استشاري --- */
-  var showCmp = !$("aType").value;
+  var showCmp = !ui.anType;
   $("anCompareCard").hidden=!showCmp;
   if(showCmp){
     var A=anAggregate(ms.filter(function(m){return m.type==="مقاول";}));
@@ -1917,8 +1895,16 @@ function wire(){
   $("tabEntry").addEventListener("click",function(){showPage("entry");});
   $("tabSummary").addEventListener("click",function(){showPage("summary");renderStats();renderSummary();});
   $("tabStats").addEventListener("click",function(){showPage("stats");renderAnalytics();});
-  ["aType","aPerson"].forEach(function(id){
-    $(id).addEventListener("change",renderAnalytics);});
+  $("aPerson").addEventListener("change",renderAnalytics);
+  /* خانتا نوع الجهة: الثانية تلغي الأولى، والضغط على المحدَّدة يعيدنا إلى الكل */
+  Array.prototype.forEach.call($("aType").querySelectorAll(".seg-btn"),function(b){
+    b.title="اضغط لتصفية "+b.getAttribute("data-v")+"ين فقط، ومرة أخرى لعرض الكل";
+    b.addEventListener("click",function(){
+      var v=b.getAttribute("data-v");
+      ui.anType=(ui.anType===v)?"":v;
+      renderTypeSeg();renderAnalytics();
+    });
+  });
   $("btnPdfStats").addEventListener("click",function(){exportPdfView("pageStats","ipc-analytics.pdf");});
   $("btnPnBack").addEventListener("click",function(){showPage("stats");renderAnalytics();});
   $("btnPnPdf").addEventListener("click",function(){
