@@ -51,11 +51,13 @@ body{background:var(--ground);color:var(--ink);
 .app{max-width:1240px;margin:0 auto;padding:18px 20px 60px}
 h1,h2,h3,.ttl{font-family:"Cairo","IBM Plex Sans Arabic",system-ui,sans-serif;text-wrap:balance;margin:0}
 .num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
-/* داخل الجداول تحاذي الأرقام نهاية الخلية لتقع تحت رأس العمود العربي */
-th.num,td.num{text-align:end}
-/* رأس العمود (وخلية الأيام) فوق أرقام: المحاذاة وحدها،
-   بلا خط الأرقام الذي يفصل حروف العربية */
-th.end,td.end{text-align:end}
+/* محاذاة أعمدة الأرقام في الجداول: اليمين فعلياً، مثل بقية الخلايا
+   في صفحة عربية الاتجاه، كي يقع رأس العمود فوق أرقامه تماماً.
+   لا نستعمل start/end هنا: خلية .num تقلب الاتجاه إلى ltr فينقلب
+   معناهما فيها وحدها، فينزاح الرأس عن أرقامه بعرض العمود كله.
+   وصنف end للخلايا التي تخلط رقماً بنص عربي («12 يوم») فلا تأخذ
+   خط الأرقام لئلا تنفصل حروفها. */
+th.num,td.num,th.end,td.end{text-align:right}
 /* تسميات مراحل صفحة المسؤول أطول (تحمل عدد المرات) فتحتاج خانة أوسع */
 #pnStages .bar-row{grid-template-columns:minmax(96px,200px) minmax(0,1fr) 64px}
 
