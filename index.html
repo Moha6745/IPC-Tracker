@@ -433,6 +433,11 @@ tr.mine td{background:var(--accent-soft)}
         <section class="card">
           <div class="head">
             <h2 class="ttl">ملخص حالة المستخلصات <span class="en">(Status Summary)</span></h2>
+            <div class="actions">
+              <button class="btn small" id="btnExcel">تصدير Excel</button>
+              <button class="btn small" id="btnPdf">تصدير PDF</button>
+              <button class="btn small" id="btnPrint">طباعة</button>
+            </div>
           </div>
           <div class="filters">
             <div class="field seg-field">
@@ -444,11 +449,6 @@ tr.mine td{background:var(--accent-soft)}
             <div class="field"><label for="qProject">المشروع</label><select id="qProject"></select></div>
             <div class="field"><label for="qPerson">المسؤول</label><select id="qPerson"></select></div>
             <div class="field"><label for="qStatus">المرحلة</label><select id="qStatus"></select></div>
-          </div>
-          <div class="actions" style="margin-bottom:14px;justify-content:flex-end">
-            <button class="btn small" id="btnExcel">تصدير Excel</button>
-            <button class="btn small" id="btnPdf">تصدير PDF</button>
-            <button class="btn small" id="btnPrint">طباعة</button>
           </div>
           <div class="tablewrap">
             <table>
