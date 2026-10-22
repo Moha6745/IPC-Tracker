@@ -291,8 +291,7 @@ td.warn{background:var(--danger-soft)}
     <div style="display:flex;align-items:center;gap:10px">
       <div class="tabs" role="tablist">
         <button role="tab" id="tabEntry" aria-selected="true">التسجيل</button>
-        <button role="tab" id="tabSummary" aria-selected="false">الملخص</button>
-        <button role="tab" id="tabStats" aria-selected="false">التحليل</button>
+        <button role="tab" id="tabSummary" aria-selected="false">الملخص والتحليل</button>
       </div>
       <div class="conn-wrap">
         <button class="conn off" type="button" id="connBtn" aria-label="حالة الاتصال" aria-expanded="false"><i></i></button>
@@ -424,6 +423,11 @@ td.warn{background:var(--danger-soft)}
             <div class="field"><label for="qProject">المشروع</label><select id="qProject"></select></div>
             <div class="field"><label for="qPerson">المسؤول</label><select id="qPerson"></select></div>
             <div class="field"><label for="qStatus">المرحلة</label><select id="qStatus"></select></div>
+            <div class="field"><label id="aTypeLbl">نوع الجهة</label>
+              <div class="seg" id="aType" role="group" aria-labelledby="aTypeLbl">
+                <button type="button" class="seg-btn" data-v="مقاول" aria-pressed="false">مقاول</button>
+                <button type="button" class="seg-btn" data-v="استشاري" aria-pressed="false">استشاري</button>
+              </div></div>
           </div>
           <div class="actions" style="margin-bottom:14px">
             <button class="btn small" id="btnExcel">تصدير Excel</button>
@@ -440,24 +444,16 @@ td.warn{background:var(--danger-soft)}
             </table>
           </div>
         </section>
-      </div>
 
-      <!-- صفحة 3 -->
-      <div id="pageStats" hidden>
+        <!-- التحليل: أرقام القائمة المعروضة أعلاه نفسها -->
+        <div id="anBlock">
         <section class="card">
           <div class="head">
-            <h2 class="ttl">لوحة التحليلات <span class="en">(Analytics)</span></h2>
-            <span class="hint" id="anMeta"></span>
-          </div>
-          <div class="filters">
-            <div class="field"><label id="aTypeLbl">نوع الجهة</label>
-              <div class="seg" id="aType" role="group" aria-labelledby="aTypeLbl">
-                <button type="button" class="seg-btn" data-v="مقاول" aria-pressed="false">مقاول</button>
-                <button type="button" class="seg-btn" data-v="استشاري" aria-pressed="false">استشاري</button>
-              </div></div>
-            <div class="field"><label for="aPerson">المسؤول</label><select id="aPerson"></select></div>
-            <span class="spacer"></span>
-            <button class="btn small" id="btnPdfStats">تصدير PDF</button>
+            <h2 class="ttl">تحليل المعروض <span class="en">(Analytics)</span></h2>
+            <div class="actions">
+              <span class="hint" id="anMeta"></span>
+              <button class="btn small" id="btnPdfStats">تصدير PDF</button>
+            </div>
           </div>
           <div class="stats" id="anKpis"></div>
           <p class="an-note" id="anEmpty" hidden>لا توجد مستخلصات مطابقة للمُرشِّحات الحالية.</p>
@@ -544,6 +540,7 @@ td.warn{background:var(--danger-soft)}
             </table>
           </div>
         </section>
+        </div>
       </div>
 
       <!-- صفحة 4: مسؤول واحد (تفريع من صفحة التحليل) -->
@@ -1089,14 +1086,17 @@ function trackEl(rec){
   if(rt){var r=el("span","rtn","↺"+rt);w.appendChild(r);}
   return w;
 }
-function filteredRecords(){
+/* مُرشِّحات الصفحة الواحدة. useStatus=false لبطاقات المراحل،
+   فهي نفسها مُرشِّح المرحلة ولا تُرشِّح نفسها. */
+function recordsBy(useStatus){
   var q=$("qSearch").value.trim().toLowerCase();
   var fp=$("qProject").value, fper=$("qPerson").value, fs=$("qStatus").value||ui.filterStatus;
   return store.ipcs.filter(function(r){
     var lv=lastEvent(r);
+    if(ui.anType&&projType(r.project)!==ui.anType)return false;
     if(fp&&r.project!==fp)return false;
     if(fper&&(!lv||lv.person!==fper))return false;
-    if(fs&&(!lv||lv.status!==fs))return false;
+    if(useStatus&&fs&&(!lv||lv.status!==fs))return false;
     if(q){
       var hay=(r.project+" "+r.company+" "+r.ipcNo).toLowerCase();
       if(hay.indexOf(q)<0)return false;
@@ -1106,9 +1106,10 @@ function filteredRecords(){
     var la=lastEvent(a),lb=lastEvent(b);
     return (lb?lb.date:"")<(la?la.date:"")?-1:1;});
 }
+function filteredRecords(){ return recordsBy(true); }
 function renderStats(){
   var box=$("stats");box.textContent="";
-  var recs=store.ipcs;
+  var recs=recordsBy(false);
   var defs=[{key:"",label:"إجمالي المستخلصات",count:recs.length}];
   STATUSES.forEach(function(s){
     var n=recs.filter(function(r){var lv=lastEvent(r);return lv&&lv.status===s.key;}).length;
@@ -1122,7 +1123,7 @@ function renderStats(){
     b.addEventListener("click",function(){
       ui.filterStatus = (ui.filterStatus===d.key)?"":d.key;
       $("qStatus").value=ui.filterStatus;
-      renderSummary();renderStats();
+      renderPage();
     });
     box.appendChild(b);
   });
@@ -1136,10 +1137,6 @@ function renderSummaryFilters(){
   qs.textContent="";var o2=el("option",null,"الكل");o2.value="";qs.appendChild(o2);
   sortedPeople().forEach(function(n){var x=el("option",null,n);x.value=n;qs.appendChild(x);});
   qs.value=k2||"";
-  var ap=$("aPerson"),k3=ap.value;
-  ap.textContent="";var o4=el("option",null,"الكل");o4.value="";ap.appendChild(o4);
-  sortedPeople().forEach(function(n){var x=el("option",null,n);x.value=n;ap.appendChild(x);});
-  ap.value=k3||"";
   var qst=$("qStatus");
   if(!qst.options.length){
     var o3=el("option",null,"الكل");o3.value="";qst.appendChild(o3);
@@ -1279,15 +1276,9 @@ function daysCell(v){
   return td;
 }
 
-/* المستخلصات بعد تطبيق مُرشِّحات صفحة التحليلات */
+/* المستخلصات المعروضة في الجدول نفسها — فالأرقام تصف ما تراه */
 function anRecords(){
-  var t=ui.anType, per=$("aPerson").value;
-  return store.ipcs.map(recStats).filter(function(m){
-    if(!m)return false;
-    if(t&&m.type!==t)return false;
-    if(per&&!m.evs.some(function(e){return e.person===per;}))return false;
-    return true;
-  });
+  return filteredRecords().map(recStats).filter(function(m){return !!m;});
 }
 /* مجموعة مقاييس لأي قائمة مستخلصات */
 function anAggregate(ms){
@@ -1334,20 +1325,18 @@ function renderTypeSeg(){
     b.setAttribute("aria-pressed",String(ui.anType===b.getAttribute("data-v")));});
 }
 function renderAnalytics(){
-  if(ui.page!=="stats")return;
+  if(ui.page!=="summary")return;
   renderTypeSeg();
   var ms=anRecords(), g=anAggregate(ms);
-  $("anMeta").textContent=ms.length?(ms.length+" مستخلص ضمن المُرشِّحات"):"";
+  $("anMeta").textContent=ms.length?("عن الـ"+ms.length+" مستخلص المعروضة أعلاه"):"";
   $("anEmpty").hidden=!!ms.length;
 
   /* --- بطاقات الأرقام --- */
   var box=$("anKpis");box.textContent="";
-  [["إجمالي المستخلصات",String(g.count),"عدد المستخلصات ضمن المُرشِّحات الحالية"],
-   ["مكتملة",String(g.approved),"وصلت إلى مرحلة «اكتمل»"],
-   ["جارية",String(g.open),"لم تصل إلى «اكتمل» بعد — ومنها ما سُجِّل باعتماد وينتظر الاكتمال"],
-   ["متوسط مدة الإنجاز",num(g.avgTotal," يوم"),"للمكتملة فقط: الأيام من أول مرحلة إلى «اكتمل»"],
+  [["متوسط مدة الإنجاز",num(g.avgTotal," يوم"),"للمكتملة فقط: الأيام من أول مرحلة إلى «اكتمل»"],
    ["متأخرة الآن",String(g.late),"مستخلصات جارية تجاوزت الحد المعتاد لمرحلتها: استلام 3 أيام، مراجعة 7، رجعت 5، موارد 5، اعتماد 7"],
-   ["نسبة المرتجعة",g.returnedShare==null?"—":Math.round(g.returnedShare)+"%","حصة المستخلصات التي رجعت للاستشاري مرة على الأقل"]
+   ["نسبة المرتجعة",g.returnedShare==null?"—":Math.round(g.returnedShare)+"%","حصة المستخلصات التي رجعت للاستشاري مرة على الأقل"],
+   ["مرات الترجيع لكل 10",g.returnsPer10==null?"—":num(g.returnsPer10),"إجمالي مرات الترجيع ÷ عدد المستخلصات × 10"]
   ].forEach(function(d){
     var c=el("div","stat");
     c.title=d[2];
@@ -1840,15 +1829,15 @@ function showPage(p){
   ui.page=p;
   $("pageEntry").hidden=(p!=="entry");
   $("pageSummary").hidden=(p!=="summary");
-  $("pageStats").hidden=(p!=="stats");
   $("pagePerson").hidden=(p!=="person");
   $("sideCol").hidden=(p!=="entry");
   document.querySelector(".layout").classList.toggle("full",p!=="entry");
   $("tabEntry").setAttribute("aria-selected",String(p==="entry"));
-  $("tabSummary").setAttribute("aria-selected",String(p==="summary"));
-  /* صفحة المسؤول تفريع من التحليل، فيبقى تبويبه محدَّداً */
-  $("tabStats").setAttribute("aria-selected",String(p==="stats"||p==="person"));
+  /* صفحة المسؤول تفريع من الملخص، فيبقى تبويبه محدَّداً */
+  $("tabSummary").setAttribute("aria-selected",String(p==="summary"||p==="person"));
 }
+/* الجدول وأرقامه يُرسمان معاً: المُرشِّح واحد */
+function renderPage(){ renderStats();renderSummary();renderAnalytics(); }
 var CONN_MSG={
   pending:"جارٍ الاتصال بقاعدة البيانات…",
   cloud:"البيانات محفوظة في السحابة وتتحدّث لحظياً لدى كل من يفتح النظام.",
@@ -1893,20 +1882,18 @@ function renderAll(){
 }
 function wire(){
   $("tabEntry").addEventListener("click",function(){showPage("entry");});
-  $("tabSummary").addEventListener("click",function(){showPage("summary");renderStats();renderSummary();});
-  $("tabStats").addEventListener("click",function(){showPage("stats");renderAnalytics();});
-  $("aPerson").addEventListener("change",renderAnalytics);
+  $("tabSummary").addEventListener("click",function(){showPage("summary");renderPage();});
   /* خانتا نوع الجهة: الثانية تلغي الأولى، والضغط على المحدَّدة يعيدنا إلى الكل */
   Array.prototype.forEach.call($("aType").querySelectorAll(".seg-btn"),function(b){
     b.title="اضغط لتصفية "+b.getAttribute("data-v")+"ين فقط، ومرة أخرى لعرض الكل";
     b.addEventListener("click",function(){
       var v=b.getAttribute("data-v");
       ui.anType=(ui.anType===v)?"":v;
-      renderTypeSeg();renderAnalytics();
+      renderTypeSeg();renderPage();
     });
   });
-  $("btnPdfStats").addEventListener("click",function(){exportPdfView("pageStats","ipc-analytics.pdf");});
-  $("btnPnBack").addEventListener("click",function(){showPage("stats");renderAnalytics();});
+  $("btnPdfStats").addEventListener("click",function(){exportPdfView("anBlock","ipc-analytics.pdf");});
+  $("btnPnBack").addEventListener("click",function(){showPage("summary");renderPage();});
   $("btnPnPdf").addEventListener("click",function(){
     exportPdfView("pagePerson","IPC-"+(ui.person||"person")+".pdf");});
   $("fProject").addEventListener("change",function(){syncCompany();ui.currentId=null;renderEntryState();renderSaved();});
@@ -1945,8 +1932,8 @@ function wire(){
   $("npCompany").addEventListener("keydown",function(e){if(e.key==="Enter")$("btnAddProject").click();});
   $("npPerson").addEventListener("keydown",function(e){if(e.key==="Enter")$("btnAddPerson").click();});
   ["qSearch","qProject","qPerson"].forEach(function(id){
-    $(id).addEventListener("input",renderSummary);$(id).addEventListener("change",renderSummary);});
-  $("qStatus").addEventListener("change",function(){ui.filterStatus=$("qStatus").value;renderStats();renderSummary();});
+    $(id).addEventListener("input",renderPage);$(id).addEventListener("change",renderPage);});
+  $("qStatus").addEventListener("change",function(){ui.filterStatus=$("qStatus").value;renderPage();});
   $("btnExcel").addEventListener("click",exportExcel);
   $("btnPdf").addEventListener("click",exportPdf);
   $("btnExcelIpc").addEventListener("click",exportExcelIpc);
